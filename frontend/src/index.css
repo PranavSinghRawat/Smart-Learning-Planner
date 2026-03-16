@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@theme {
+  /* Earthy Colors */
+  --color-terracotta-50: #FDF4F2;
+  --color-terracotta-100: #FCE9E5;
+  --color-terracotta-200: #F8C8BD;
+  --color-terracotta-300: #F3A795;
+  --color-terracotta-400: #EF866D;
+  --color-terracotta-500: #E76F51;
+  --color-terracotta-600: #D04D2E;
+  --color-terracotta-700: #A13B24;
+  --color-terracotta-800: #722A19;
+  --color-terracotta-900: #43180F;
+
+  --color-sage-50: #F4F9F6;
+  --color-sage-100: #E9F3ED;
+  --color-sage-200: #C8E2D2;
+  --color-sage-300: #A8D5BA;
+  --color-sage-400: #87C6A1;
+  --color-sage-500: #67B888;
+  --color-sage-600: #4EA371;
+  --color-sage-700: #3D7F58;
+  --color-sage-800: #2C5B3F;
+  --color-sage-900: #1B3726;
+
+  /* Theme Colors */
+  --color-background: #0f172a;
+  --color-surface: #1c1917;
+  --color-card: #292524;
+
+  /* Font */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* Scale */
+  --scale-102: 1.02;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Glassmorphism upgrade: Earthy Stone based */
+.glass {
+  background: rgba(41, 37, 36, 0.7); /* Stone-800 with opacity */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #44403c;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #E76F51;
+}
+
+/* Focus Ring utility */
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  ring: 2px;
+  --tw-ring-color: #E76F51;
+}
+
+/* Fade-in stagger utility */
+.fade-in-stagger {
+  animation: fadeIn 0.5s ease forwards;
+  opacity: 0;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
