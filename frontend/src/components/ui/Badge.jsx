@@ -1,19 +1,30 @@
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-const Badge = ({ className, variant = 'default', children, ...props }) => {
-  const baseStyles = 'px-3 py-1 rounded-full text-[10px] font-black tracking-widest uppercase inline-flex items-center gap-1.5';
-  
+const Badge = ({ variant = 'default', size = 'sm', dot = false, className, children, ...props }) => {
   const variants = {
-    default: 'bg-slate-800 text-slate-400',
-    primary: 'bg-terracotta-500/10 text-terracotta-500 ring-1 ring-terracotta-500/20',
-    success: 'bg-sage-500/10 text-sage-500 ring-1 ring-sage-500/20',
-    warning: 'bg-amber-500/10 text-amber-500 ring-1 ring-amber-500/20',
-    danger: 'bg-red-500/10 text-red-500 ring-1 ring-red-500/20',
+    default: 'bg-zinc-100 border-zinc-200 text-zinc-600',
+    tc:      'bg-tc-50   border-tc-200   text-tc-700',
+    sg:      'bg-sg-50   border-sg-200   text-sg-700',
+    amber:   'bg-amber-50  border-amber-200  text-amber-700',
+    red:     'bg-red-50    border-red-200    text-red-600',
+    blue:    'bg-blue-50   border-blue-200   text-blue-600',
+    purple:  'bg-purple-50 border-purple-200 text-purple-600',
   };
 
+  const dots = {
+    default: 'bg-zinc-400', tc: 'bg-tc-500', sg: 'bg-sg-500',
+    amber: 'bg-amber-500', red: 'bg-red-500', blue: 'bg-blue-500', purple: 'bg-purple-500',
+  };
+
+  const sizes = { sm: 'h-5 px-2 text-2xs', md: 'h-6 px-2.5 text-xs' };
+
   return (
-    <span className={twMerge(clsx(baseStyles, variants[variant], className))} {...props}>
+    <span className={twMerge(clsx(
+      'inline-flex items-center gap-1 font-medium rounded-md border',
+      variants[variant], sizes[size], className
+    ))} {...props}>
+      {dot && <span className={clsx('w-1.5 h-1.5 rounded-full shrink-0 animate-pulse-dot', dots[variant])} aria-hidden="true" />}
       {children}
     </span>
   );
