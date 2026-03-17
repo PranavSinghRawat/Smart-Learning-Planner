@@ -18,6 +18,9 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import StopIcon from "@mui/icons-material/Stop";
 import Auth from "./pages/Auth";
+import ExamPlanner from "./pages/ExamPlanner";
+import CareerGoals from "./pages/CareerGoals";
+import SmartPlan from "./pages/SmartPlan";
 
 const COLORS = {
   ahead: "#10B981", track: "#F59E0B", behind: "#EF4444",
@@ -89,6 +92,7 @@ function App() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [studyHistory, setStudyHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [activeTab, setActiveTab] = useState(0); // 0=Planner 1=Exams 2=Career 3=SmartPlan
 
   const getCustomSubjectsKey = (uid) => `customSubjects_${uid}`;
   const getStudyHistoryKey   = (uid) => `studyHistory_${uid}`;
@@ -121,6 +125,8 @@ function App() {
     if (timerActive) interval = setInterval(() => setTimerSeconds(p => p + 1), 1000);
     return () => clearInterval(interval);
   }, [timerActive]);
+
+  const [token, setToken] = useState(localStorage.getItem('token') || '');
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -217,6 +223,7 @@ function App() {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setCurrentUserId(user.id);
     setCurrentUsername(user.username || '');
+    setToken(localStorage.getItem('token') || '');
     const cs = localStorage.getItem(getCustomSubjectsKey(user.id));
     if (cs) setCustomSubjects(JSON.parse(cs));
     const sh = localStorage.getItem(getStudyHistoryKey(user.id));
@@ -230,13 +237,21 @@ function App() {
     <Box sx={{ background: COLORS.bg, minHeight: "100vh" }}>
       {/* NAVBAR */}
       <AppBar position="sticky" sx={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`, boxShadow: "0 4px 20px rgba(15,118,110,0.15)" }}>
-        <Toolbar>
+        <Toolbar sx={{ flexWrap: "wrap", gap: 0.5 }}>
           <Box sx={{ flexGrow: 1 }}>
             <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>📚 Smart Learning Planner</Typography>
             {currentUsername && <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>👋 {currentUsername}</Typography>}
           </Box>
+          {[["📖 Study Planner", 0], ["📝 Exam Planner", 1], ["🎯 Career Goals", 2], ["🧠 Smart Plan", 3]].map(([label, idx]) => (
+            <Button key={idx} color="inherit" onClick={() => setActiveTab(idx)}
+              sx={{ textTransform: "capitalize", fontWeight: activeTab === idx ? 700 : 400,
+                background: activeTab === idx ? "rgba(255,255,255,0.2)" : "transparent",
+                borderRadius: 2, "&:hover": { background: "rgba(255,255,255,0.1)" } }}>
+              {label}
+            </Button>
+          ))}
           <Button color="inherit" onClick={() => setShowHistory(!showHistory)}
-            sx={{ textTransform: "capitalize", "&:hover": { background: "rgba(255,255,255,0.1)" }, mr: 1 }}>
+            sx={{ textTransform: "capitalize", "&:hover": { background: "rgba(255,255,255,0.1)" } }}>
             📋 History
           </Button>
           <Button color="inherit" onClick={handleLogout}
@@ -247,6 +262,13 @@ function App() {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* NEW PAGES */}
+        {activeTab === 1 && <ExamPlanner token={token} />}
+        {activeTab === 2 && <CareerGoals userId={currentUserId} />}
+        {activeTab === 3 && <SmartPlan token={token} userId={currentUserId} />}
+
+        {/* STUDY PLANNER (tab 0) */}
+        {activeTab === 0 && (<>
         {/* HISTORY PANEL */}
         {showHistory && (
           <Card sx={{ mb: 3, borderRadius: 3, background: "#F0F9FF", border: `2px solid ${COLORS.secondary}` }}>
@@ -503,6 +525,7 @@ function App() {
             <Typography variant="body2" color="textSecondary">Choose a subject and click "Generate Plan" to start learning!</Typography>
           </Paper>
         )}
+        </>)}
       </Container>
 
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>

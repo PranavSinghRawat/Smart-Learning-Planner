@@ -1,7 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const protect = require('../middleware/auth');
-const { getExams, createExam } = require('../controllers/examController');
+const { getExams, createExam, deleteExam } = require('../controllers/examController');
 
 const router = express.Router();
 
@@ -21,5 +21,7 @@ router.post(
   ],
   createExam
 );
+
+router.delete('/:id', deleteExam);
 
 module.exports = router;

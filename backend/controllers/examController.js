@@ -17,7 +17,7 @@ const createExam = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { examName, examDate, targetScore } = req.body;
+  const { examName, examDate, targetScore, subjects, weakTopics } = req.body;
 
   try {
     const exam = await Exam.create({
@@ -25,6 +25,8 @@ const createExam = async (req, res) => {
       examName,
       examDate,
       targetScore: targetScore ?? 80,
+      subjects: subjects || [],
+      weakTopics: weakTopics || [],
     });
 
     res.status(201).json({ message: 'Exam created successfully.', exam });
@@ -34,4 +36,15 @@ const createExam = async (req, res) => {
   }
 };
 
-module.exports = { getExams, createExam };
+const deleteExam = async (req, res) => {
+  try {
+    const exam = await Exam.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+    if (!exam) return res.status(404).json({ message: 'Exam not found.' });
+    res.status(200).json({ message: 'Exam deleted.' });
+  } catch (error) {
+    console.error('Delete Exam Error:', error.message);
+    res.status(500).json({ message: 'Server error while deleting exam.' });
+  }
+};
+
+module.exports = { getExams, createExam, deleteExam };

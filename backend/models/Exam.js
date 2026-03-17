@@ -24,6 +24,14 @@ const ExamSchema = new mongoose.Schema(
       max: [100, 'Target score cannot exceed 100'],
       default: 80,
     },
+    subjects: {
+      type: [String],
+      default: [],
+    },
+    weakTopics: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );
