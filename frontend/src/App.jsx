@@ -6,7 +6,9 @@ import {
   DialogTitle, DialogContent, DialogActions, Tabs, Tab,
   List, ListItem, ListItemText, ListItemIcon, Accordion,
   AccordionSummary, AccordionDetails, Divider,
+  InputAdornment,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import {
   PieChart, Pie, Cell, Tooltip, BarChart, Bar,
   XAxis, YAxis, ResponsiveContainer,
@@ -21,6 +23,8 @@ import Auth from "./pages/Auth";
 import ExamPlanner from "./pages/ExamPlanner";
 import CareerGoals from "./pages/CareerGoals";
 import SmartPlan from "./pages/SmartPlan";
+import ResourcePanel from "./components/ResourcePanel";
+import { SUBJECTS_DB as CATALOG_DB } from "./data/subjects";
 
 const COLORS = {
   ahead: "#10B981", track: "#F59E0B", behind: "#EF4444",
@@ -28,51 +32,43 @@ const COLORS = {
   bg: "#F8FAFC", cardBg: "#FFFFFF",
 };
 
-const SUBJECTS_DB = {
-  "DSA": {
-    emoji: "📊", fullName: "Data Structures & Algorithms",
-    description: "Master the fundamentals of computer science with in-depth coverage of data structures and algorithms",
-    Beginner: ["Arrays & Strings - Indexing, searching, sorting basics","Linked Lists - Singly linked list, operations","Stacks & Queues - LIFO/FIFO operations","Hash Tables - Hashing, collision handling","Sorting Basics - Bubble, selection, insertion sort","Big O Notation - Time & space complexity analysis"],
-    Intermediate: ["Binary Search Trees - BST operations, traversals","Graphs & BFS/DFS - Graph representations, traversals","Dynamic Programming Intro - Memoization basics","Greedy Algorithms - Activity selection, fractional knapsack","Backtracking - N-Queens, permutations, combinations","Heaps & Priority Queues - Min/Max heap implementation"],
-    Advanced: ["Advanced DP - Longest subsequences, matrix chain multiplication","Network Flow - Max flow, Ford-Fulkerson algorithm","Segment Trees - Range queries, updates","Tries & String Matching - KMP, Rabin-Karp algorithms","NP-Complete Problems - Recognition & approximation","Graph Algorithms - Dijkstra, Floyd-Warshall, Bellman-Ford"],
-  },
-  "Python": {
-    emoji: "🐍", fullName: "Python Programming",
-    description: "Learn Python from basics to advanced OOP, web development, and data science applications",
-    Beginner: ["Syntax & Variables - Data types, variable assignment","Control Flow - if/else statements, loops (for, while)","Functions & Scope - Function definition, parameters, return values","Data Types - Lists, tuples, dictionaries, sets","String Operations - String methods, f-strings, formatting","File I/O - Reading, writing, file operations"],
-    Intermediate: ["OOP Basics - Classes, objects, inheritance, polymorphism","Modules & Packages - Import system, creating modules","Exception Handling - Try-except blocks, custom exceptions","Decorators & Closures - Function decorators, nested functions","Generators & Iterators - yield keyword, generator functions","List Comprehensions - Concise list creation, nested comprehensions"],
-    Advanced: ["Async Programming - asyncio, async/await, event loops","Metaclasses - Class creation, __new__, __init__","Performance Optimization - Profiling, caching, optimization","Testing & Debugging - unittest, pytest, debugging techniques","Design Patterns - Singleton, Factory, Observer, Strategy","Memory Management - Garbage collection, optimization tips"],
-  },
-  "Web Dev": {
-    emoji: "🌐", fullName: "Web Development",
-    description: "Full-stack web development covering frontend, backend, and deployment",
-    Beginner: ["HTML Basics - Semantic HTML, forms, accessibility","CSS Styling - Flexbox, Grid, responsive design","JavaScript Fundamentals - Variables, functions, DOM","DOM Manipulation - querySelector, event listeners","Forms & Validation - Form handling, client-side validation","Responsive Design - Media queries, mobile-first approach"],
-    Intermediate: ["React Hooks - useState, useEffect, custom hooks","Component Architecture - Composition, reusable components","REST APIs - Fetch API, axios, error handling","Routing - React Router, navigation, params","CSS Frameworks - Tailwind CSS, Bootstrap integration","Local Storage & Session - Browser storage APIs"],
-    Advanced: ["Performance Optimization - Code splitting, lazy loading, memoization","Testing - Jest, React Testing Library, E2E testing","Deployment - Vercel, Netlify, GitHub Pages, CI/CD","Security - CORS, XSS prevention, CSRF tokens, authentication","Advanced Patterns - HOC, Render Props, Compound Components","Server-Side Rendering - Next.js, SSR concepts"],
-  },
-  "Machine Learning": {
-    emoji: "🤖", fullName: "Machine Learning & AI",
-    description: "Comprehensive guide to machine learning, deep learning, and AI applications",
-    Beginner: ["Python for ML - NumPy arrays, Pandas dataframes","Data Preprocessing - Cleaning, handling missing values","Exploratory Data Analysis - Statistics, visualization","Linear Regression - Cost function, gradient descent","Logistic Regression - Binary classification, probability","Decision Trees - Tree construction, pruning, visualization"],
-    Intermediate: ["Random Forests - Ensemble methods, bagging, feature importance","K-Means Clustering - Unsupervised learning, centroid updates","Principal Component Analysis - Dimensionality reduction","Support Vector Machines - Kernel methods, margin maximization","Neural Networks Basics - Perceptron, backpropagation","Model Evaluation - Confusion matrix, precision, recall, F1-score"],
-    Advanced: ["Deep Learning - CNNs for image recognition, RNNs for sequences","Natural Language Processing - Tokenization, embeddings, BERT","Computer Vision - Image classification, object detection","Reinforcement Learning - Q-learning, policy gradient","Transfer Learning - Pre-trained models, fine-tuning","Model Deployment - TensorFlow Serving, containerization"],
-  },
-  "JavaScript": {
-    emoji: "⚡", fullName: "JavaScript Mastery",
-    description: "Deep dive into JavaScript ES6+, async programming, and modern frameworks",
-    Beginner: ["Variables & Scope - var, let, const, block scope","Data Types & Operators - Primitives, type coercion","Functions & Arrow Functions - Function declarations, arrow syntax","Objects & Arrays - Object methods, array manipulation","DOM & Events - Event handling, event delegation","Promise Basics - Promise creation, then/catch chaining"],
-    Intermediate: ["Async/Await - Async functions, error handling with try-catch","Closures & Hoisting - Variable hoisting, closure patterns","Prototypes & Inheritance - Prototype chain, constructor functions","Modules - ES6 import/export, module patterns","Error Handling - Custom errors, error stack traces","Regular Expressions - Regex patterns, exec, match, replace"],
-    Advanced: ["Advanced Closures - Module pattern, data privacy","Event Loop & Microtasks - Execution context, call stack","Web Workers - Multi-threading in JavaScript","Memory Leaks - Detecting and preventing memory issues","Design Patterns - Singleton, Observer, Module pattern","Advanced Async - Race conditions, concurrent operations"],
-  },
-  "React": {
-    emoji: "⚛️", fullName: "React & Frontend",
-    description: "Master React for building modern, scalable, and performant web applications",
-    Beginner: ["JSX & Components - Function components, JSX syntax","Props & State - Component props, useState hook","Hooks (useState, useEffect) - Managing component lifecycle","Conditional Rendering - if/else, ternary, logical AND","Lists & Keys - Rendering lists, key prop importance","Form Handling - Controlled components, input handling"],
-    Intermediate: ["Context API - Creating context, useContext hook","Custom Hooks - Building reusable hooks, hook rules","useReducer - Complex state management, reducer pattern","Performance Optimization - useMemo, useCallback, React.memo","Code Splitting - Dynamic imports, lazy loading","Error Boundaries - Error handling in components"],
-    Advanced: ["Advanced Patterns - HOC, Render Props, composition","Server Components - RSC concepts, async components","Suspense & Lazy Loading - Code splitting, data fetching","Concurrent Features - Transitions, startTransition","React Testing - Component testing, hooks testing","State Management - Redux, Zustand, Jotai integration"],
-  },
-};
+// ── Generic curriculum generator for ANY subject not in the catalog ──────────
+function generateTopicsForAnySubject(name) {
+  const n = name.trim();
+  return {
+    emoji: "🎯",
+    fullName: n,
+    description: `A structured learning path for ${n} — from fundamentals to advanced mastery`,
+    category: "custom",
+    Beginner: [
+      `${n} - What it is, history, and why it matters`,
+      `${n} - Core terminology and fundamental concepts`,
+      `${n} - Essential tools, setup, and environment`,
+      `${n} - Your first hands-on exercise or project`,
+      `${n} - Common beginner mistakes and how to avoid them`,
+      `${n} - Beginner practice: apply what you've learned`,
+    ],
+    Intermediate: [
+      `${n} - Deeper theory: how and why things work`,
+      `${n} - Practical techniques used by practitioners`,
+      `${n} - Solving real problems and common challenges`,
+      `${n} - Intermediate project: build something meaningful`,
+      `${n} - Best practices, standards, and conventions`,
+      `${n} - Community, books, and resources to go deeper`,
+    ],
+    Advanced: [
+      `${n} - Advanced theory and specialized sub-topics`,
+      `${n} - Expert-level techniques and edge cases`,
+      `${n} - Latest research, trends, and innovations`,
+      `${n} - Advanced project: portfolio-worthy work`,
+      `${n} - Teaching and explaining to solidify mastery`,
+      `${n} - Career paths, niches, and professional growth`,
+    ],
+  };
+}
 
+// Merge catalog with any user-created custom subjects
+const BASE_SUBJECTS = { ...CATALOG_DB };
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -92,7 +88,7 @@ function App() {
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [studyHistory, setStudyHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
-  const [activeTab, setActiveTab] = useState(0); // 0=Planner 1=Exams 2=Career 3=SmartPlan
+  const [activeTab, setActiveTab] = useState(0);
 
   const getCustomSubjectsKey = (uid) => `customSubjects_${uid}`;
   const getStudyHistoryKey   = (uid) => `studyHistory_${uid}`;
@@ -167,11 +163,18 @@ function App() {
     showSnackbar(`✨ Custom subject "${customSubjectName}" created!`);
   };
 
-  const allSubjects = { ...SUBJECTS_DB, ...customSubjects };
+  const allSubjects = { ...BASE_SUBJECTS, ...customSubjects };
+
+  // Resolve subject data — catalog hit, custom hit, or auto-generate for anything
+  const resolveSubject = (name) => {
+    if (allSubjects[name]) return allSubjects[name];
+    if (name && name.trim()) return generateTopicsForAnySubject(name.trim());
+    return null;
+  };
 
   const generatePlan = () => {
-    const subData = allSubjects[subject];
-    if (!subData) { showSnackbar('Subject not found', 'error'); return; }
+    const subData = resolveSubject(subject);
+    if (!subData) { showSnackbar('Please enter a subject name', 'error'); return; }
     const topics = subData[level] || [];
     if (!topics.length) { showSnackbar('No topics available for this level', 'error'); return; }
     const topicsPerDay = Math.ceil(topics.length / days);
@@ -231,7 +234,7 @@ function App() {
     setIsAuthenticated(true);
   }} />;
 
-  const currentSubjectData = allSubjects[subject];
+  const currentSubjectData = resolveSubject(subject);
 
   return (
     <Box sx={{ background: COLORS.bg, minHeight: "100vh" }}>
@@ -285,7 +288,7 @@ function App() {
                   {studyHistory.map(entry => (
                     <ListItem key={entry.id} sx={{ borderBottom: "1px solid #E2E8F0", "&:last-child": { borderBottom: "none" } }}>
                       <ListItemText
-                        primary={`${allSubjects[entry.subject]?.emoji} ${entry.subject} - ${entry.level}`}
+                        primary={`${resolveSubject(entry.subject)?.emoji || "🎯"} ${entry.subject} - ${entry.level}`}
                         secondary={`📅 ${entry.createdAt} | ⏱️ ${entry.days} days × ${entry.hours}h/day`}
                       />
                     </ListItem>
@@ -298,25 +301,42 @@ function App() {
 
         {/* CONTROLS */}
         <Paper elevation={0} sx={{ p: 3, mb: 4, background: COLORS.cardBg, borderRadius: 3, border: "1px solid #E2E8F0" }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: COLORS.primary }}>📋 Plan Your Study</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: COLORS.primary }}>📋 Plan Your Study</Typography>
+          <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
+            Type <strong>anything</strong> — DSA, Pottery, Urdu, Chess, Cooking, Quantum Physics — and get a full study plan with resources.
+          </Typography>
 
-          {currentSubjectData && (
-            <Box sx={{ mb: 3, p: 2, background: "#F0F9FF", borderRadius: 2, border: `2px solid ${COLORS.secondary}` }}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>{currentSubjectData.emoji} {currentSubjectData.fullName}</Typography>
-              <Typography variant="body2" color="textSecondary">{currentSubjectData.description}</Typography>
+          {currentSubjectData && subject.trim() && (
+            <Box sx={{ mb: 3, p: 2, background: "#F0F9FF", borderRadius: 2, border: `2px solid ${COLORS.secondary}`, display: "flex", alignItems: "center", gap: 2 }}>
+              <Typography variant="h4">{currentSubjectData.emoji}</Typography>
+              <Box>
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>{currentSubjectData.fullName}</Typography>
+                <Typography variant="body2" color="textSecondary">{currentSubjectData.description}</Typography>
+                {!CATALOG_DB[subject] && (
+                  <Chip label="✨ Auto-generated plan" size="small" sx={{ mt: 0.5, background: "#FEF9C3", color: "#92400E", fontWeight: 600 }} />
+                )}
+              </Box>
             </Box>
           )}
 
           <Grid container spacing={2} alignItems="flex-end">
-            <Grid item xs={12} sm={6} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Subject</InputLabel>
-                <Select value={subject} onChange={e => setSubject(e.target.value)} sx={{ borderRadius: 2 }} label="Subject">
-                  {Object.entries(allSubjects).map(([k, v]) => (
-                    <MenuItem key={k} value={k}>{v.emoji} {v.fullName}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            <Grid item xs={12} md={4}>
+              <TextField
+                fullWidth
+                label="What do you want to learn?"
+                placeholder="e.g. Machine Learning, Guitar, French, Pottery..."
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && generatePlan()}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: COLORS.primary }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
+              />
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
               <TextField fullWidth label="Days" type="number" value={days}
@@ -491,16 +511,27 @@ function App() {
                       <AccordionDetails sx={{ pt: 3, background: "#FAFBFC" }}>
                         <List sx={{ p: 0 }}>
                           {day.topics.map((topic, j) => (
-                            <ListItem key={j} onClick={() => toggleSubtopic(i, j)}
-                              sx={{ py: 1.5, borderBottom: "1px solid #E2E8F0", "&:last-child": { borderBottom: "none" }, transition: "all 0.2s", cursor: "pointer", "&:hover": { background: "#F0F9FF" } }}>
-                              <ListItemIcon sx={{ minWidth: 40 }}>
+                            <ListItem key={j}
+                              sx={{ py: 1.5, borderBottom: "1px solid #E2E8F0", "&:last-child": { borderBottom: "none" }, transition: "all 0.2s", alignItems: "flex-start" }}>
+                              <ListItemIcon sx={{ minWidth: 40, mt: 0.5, cursor: "pointer" }} onClick={() => toggleSubtopic(i, j)}>
                                 {topic.completed
                                   ? <CheckCircleIcon sx={{ color: COLORS.ahead, fontSize: 24 }} />
                                   : <RadioButtonUncheckedIcon sx={{ color: "#CBD5E1", fontSize: 24 }} />}
                               </ListItemIcon>
                               <ListItemText
-                                primary={<Typography sx={{ fontWeight: 600, textDecoration: topic.completed ? "line-through" : "none", color: topic.completed ? "#94A3B8" : "#1E293B" }}>{topic.name}</Typography>}
-                                secondary={<Typography variant="caption" sx={{ color: "#64748B" }}>⏱️ {topic.hours}h • Click to mark complete</Typography>}
+                                primary={
+                                  <Typography
+                                    onClick={() => toggleSubtopic(i, j)}
+                                    sx={{ fontWeight: 600, textDecoration: topic.completed ? "line-through" : "none", color: topic.completed ? "#94A3B8" : "#1E293B", cursor: "pointer" }}>
+                                    {topic.name}
+                                  </Typography>
+                                }
+                                secondary={
+                                  <Box component="span">
+                                    <Typography variant="caption" sx={{ color: "#64748B" }}>⏱️ {topic.hours}h • Click to mark complete</Typography>
+                                    <ResourcePanel topicName={topic.name} />
+                                  </Box>
+                                }
                               />
                             </ListItem>
                           ))}
