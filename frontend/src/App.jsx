@@ -232,7 +232,7 @@ function App() {
       <AppBar position="sticky" sx={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`, boxShadow: "0 4px 20px rgba(15,118,110,0.15)" }}>
         <Toolbar>
           <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>📚 AI Study Planner</Typography>
+            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>📚 Smart Learning Planner</Typography>
             {currentUsername && <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>👋 {currentUsername}</Typography>}
           </Box>
           <Button color="inherit" onClick={() => setShowHistory(!showHistory)}

@@ -105,10 +105,10 @@ function Auth({ onLoginSuccess }) {
         <Card sx={{ borderRadius: 4, boxShadow: '0 20px 60px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
           <Box sx={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`, p: 3, textAlign: 'center' }}>
             <Typography variant="h4" sx={{ fontWeight: 700, color: '#fff', mb: 1 }}>
-              📚 AI Study Planner
+              📚 Smart Learning Planner
             </Typography>
             <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.9)', fontWeight: 500 }}>
-              Your Personalized Learning Journey
+              Your Smart Learning & Career Planner
             </Typography>
           </Box>
 
