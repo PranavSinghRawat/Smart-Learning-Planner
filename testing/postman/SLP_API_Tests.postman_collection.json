@@ -36,8 +36,19 @@
               "listen": "prerequest",
               "script": { "exec": [
                 "const ts = Date.now();",
-                "pm.collectionVariables.set('dynamicEmail', `atharv04_${ts}@gmail.com`);",
-                "pm.collectionVariables.set('dynamicUsername', `Atharv Singh Rawat_${ts}`);"
+                "const email = `atharv04_${ts}@gmail.com`;",
+                "const username = `AtharvSinghRawat_${ts}`;",
+                "pm.collectionVariables.set('dynamicEmail', email);",
+                "pm.collectionVariables.set('dynamicUsername', username);",
+                "pm.request.body.update({",
+                "  mode: 'raw',",
+                "  raw: JSON.stringify({",
+                "    username: username,",
+                "    name: 'Atharv Singh Rawat',",
+                "    email: email,",
+                "    password: 'atharv04'",
+                "  })",
+                "});"
               ]}
             },
             {
@@ -59,20 +70,29 @@
           "request": {
             "method": "POST", "url": "{{baseUrl}}/api/auth/register",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{dynamicUsername}}\",\n  \"name\": \"Atharv Singh Rawat\",\n  \"email\": \"{{dynamicEmail}}\",\n  \"password\": \"atharv04\"\n}" }
+            "body": { "mode": "raw", "raw": "{}" }
           }
         },
         {
           "name": "Register – Duplicate Email",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": [
+                "const email = pm.collectionVariables.get('dynamicEmail');",
+                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: 'Test Duplicate', name: 'Test Duplicate', email: email, password: 'atharv04' }) });"
+              ]}
+            },
+            { "listen": "test", "script": { "exec": [
+              "pm.test('Status 400 – duplicate email rejected', () => pm.response.to.have.status(400));",
+              "pm.test('Error field present', () => pm.expect(pm.response.json()).to.have.property('error'));"
+            ]}}
+          ],
           "request": {
             "method": "POST", "url": "{{baseUrl}}/api/auth/register",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"Test Duplicate\",\n  \"name\": \"Test Duplicate\",\n  \"email\": \"{{dynamicEmail}}\",\n  \"password\": \"atharv04\"\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 400 – duplicate email rejected', () => pm.response.to.have.status(400));",
-            "pm.test('Error field present', () => pm.expect(pm.response.json()).to.have.property('error'));"
-          ]}}]
+            "body": { "mode": "raw", "raw": "{}" }
+          }
         },
         {
           "name": "Register – Missing Fields",
@@ -87,31 +107,52 @@
         },
         {
           "name": "Login – Success",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": [
+                "const username = pm.collectionVariables.get('dynamicUsername');",
+                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: username, password: 'atharv04' }) });"
+              ]}
+            },
+            {
+              "listen": "test",
+              "script": { "exec": [
+                "pm.test('Status 200 – login successful', () => pm.response.to.have.status(200));",
+                "pm.test('Has token', () => {",
+                "  const j = pm.response.json();",
+                "  pm.expect(j).to.have.property('token');",
+                "  pm.collectionVariables.set('token', j.token);",
+                "});",
+                "pm.test('Response time under 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
+              ]}
+            }
+          ],
           "request": {
             "method": "POST", "url": "{{baseUrl}}/api/auth/login",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{dynamicUsername}}\",\n  \"password\": \"atharv04\"\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 200 – login successful', () => pm.response.to.have.status(200));",
-            "pm.test('Has token', () => {",
-            "  const j = pm.response.json();",
-            "  pm.expect(j).to.have.property('token');",
-            "  pm.collectionVariables.set('token', j.token);",
-            "});",
-            "pm.test('Response time under 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
-          ]}}]
+            "body": { "mode": "raw", "raw": "{}" }
+          }
         },
         {
           "name": "Login – Wrong Password",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": [
+                "const username = pm.collectionVariables.get('dynamicUsername');",
+                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: username, password: 'wrongpassword' }) });"
+              ]}
+            },
+            { "listen": "test", "script": { "exec": [
+              "pm.test('Status 401 – wrong password rejected', () => pm.response.to.have.status(401));"
+            ]}}
+          ],
           "request": {
             "method": "POST", "url": "{{baseUrl}}/api/auth/login",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{dynamicUsername}}\",\n  \"password\": \"wrongpassword\"\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 401 – wrong password rejected', () => pm.response.to.have.status(401));"
-          ]}}]
+            "body": { "mode": "raw", "raw": "{}" }
+          }
         },
         {
           "name": "Login – Non-existent User",
@@ -126,14 +167,23 @@
         },
         {
           "name": "Login – Missing Fields",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": { "exec": [
+                "const username = pm.collectionVariables.get('dynamicUsername');",
+                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: username }) });"
+              ]}
+            },
+            { "listen": "test", "script": { "exec": [
+              "pm.test('Status 400 – missing password rejected', () => pm.response.to.have.status(400));"
+            ]}}
+          ],
           "request": {
             "method": "POST", "url": "{{baseUrl}}/api/auth/login",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"{{dynamicUsername}}\"\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 400 – missing password rejected', () => pm.response.to.have.status(400));"
-          ]}}]
+            "body": { "mode": "raw", "raw": "{}" }
+          }
         }
       ]
     },
