@@ -1,0 +1,286 @@
+{
+  "info": {
+    "name": "Smart Learning Planner – API Tests",
+    "_postman_id": "slp-api-test-collection-v1",
+    "description": "Complete API test collection for Smart Learning Planner. Covers Auth, Exams, Subjects, Security.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5001", "type": "string" },
+    { "key": "token",   "value": "",                      "type": "string" },
+    { "key": "examId",  "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET /api/health",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/health" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Status ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register – Success",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Test User\",\"email\":\"testuser@slp.com\",\"password\":\"password123\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Has token', () => { const j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.collectionVariables.set('token', j.token); });",
+            "pm.test('User email matches', () => pm.expect(pm.response.json().user.email).to.eql('testuser@slp.com'));"
+          ]}}]
+        },
+        {
+          "name": "Register – Duplicate Email",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Test User\",\"email\":\"testuser@slp.com\",\"password\":\"password123\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));",
+            "pm.test('Error message', () => pm.expect(pm.response.json().message).to.include('already registered'));"
+          ]}}]
+        },
+        {
+          "name": "Register – Missing Fields",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"incomplete@slp.com\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "Register – Short Password (Boundary)",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"name\":\"Short\",\"email\":\"short@slp.com\",\"password\":\"abc\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400 for short password', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "Login – Success",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"testuser@slp.com\",\"password\":\"password123\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Has token', () => { const j = pm.response.json(); pm.expect(j).to.have.property('token'); pm.collectionVariables.set('token', j.token); });",
+            "pm.test('Response time < 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
+          ]}}]
+        },
+        {
+          "name": "Login – Wrong Password",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"testuser@slp.com\",\"password\":\"wrongpassword\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}]
+        },
+        {
+          "name": "Login – Non-existent Email",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":\"ghost@nowhere.com\",\"password\":\"anything\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401', () => pm.response.to.have.status(401));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Exams",
+      "item": [
+        {
+          "name": "GET /api/exams – No Token",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/exams" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401 without token', () => pm.response.to.have.status(401));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/exams – Create Exam",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/exams",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"examName\":\"Mathematics Final\",\"examDate\":\"2026-12-01\",\"targetScore\":85}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Exam name correct', () => { const j = pm.response.json(); pm.expect(j.exam.examName).to.eql('Mathematics Final'); pm.collectionVariables.set('examId', j.exam._id); });",
+            "pm.test('Target score 85', () => pm.expect(pm.response.json().exam.targetScore).to.eql(85));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/exams – Missing examName",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/exams",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"examDate\":\"2026-12-01\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/exams – Invalid Date",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/exams",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"examName\":\"Test\",\"examDate\":\"not-a-date\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/exams – Score 101 (Boundary)",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/exams",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"examName\":\"Boundary\",\"examDate\":\"2026-12-01\",\"targetScore\":101}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400 for score > 100', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/exams – List",
+          "request": {
+            "method": "GET", "url": "{{baseUrl}}/api/exams",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns array', () => pm.expect(pm.response.json().exams).to.be.an('array'));",
+            "pm.test('Response time < 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
+          ]}}]
+        },
+        {
+          "name": "DELETE /api/exams/:id",
+          "request": {
+            "method": "DELETE", "url": "{{baseUrl}}/api/exams/{{examId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 on delete', () => pm.response.to.have.status(200));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Subjects",
+      "item": [
+        {
+          "name": "POST /api/subjects – Create",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/subjects",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"examId\":\"{{examId}}\",\"subjectName\":\"Organic Chemistry\",\"difficulty\":\"hard\",\"isWeak\":true}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 201', () => pm.response.to.have.status(201));",
+            "pm.test('Subject name correct', () => pm.expect(pm.response.json().subject.subjectName).to.eql('Organic Chemistry'));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/subjects – Invalid Difficulty",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/subjects",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "body": { "mode": "raw", "raw": "{\"examId\":\"{{examId}}\",\"subjectName\":\"Physics\",\"difficulty\":\"extreme\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400 for invalid difficulty', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/subjects – List",
+          "request": {
+            "method": "GET", "url": "{{baseUrl}}/api/subjects",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200', () => pm.response.to.have.status(200));",
+            "pm.test('Returns array', () => pm.expect(pm.response.json().subjects).to.be.an('array'));"
+          ]}}]
+        }
+      ]
+    },
+    {
+      "name": "Security",
+      "item": [
+        {
+          "name": "Invalid Token",
+          "request": {
+            "method": "GET", "url": "{{baseUrl}}/api/exams",
+            "header": [{ "key": "Authorization", "value": "Bearer thisisaninvalidtoken" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 401 for invalid token', () => pm.response.to.have.status(401));"
+          ]}}]
+        },
+        {
+          "name": "NoSQL Injection – Login",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"email\":{\"$gt\":\"\"},\"password\":\"anything\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('No injection bypass', () => pm.expect(pm.response.code).to.not.eql(200));",
+            "pm.test('Server did not crash', () => pm.expect(pm.response.code).to.not.eql(500));"
+          ]}}]
+        },
+        {
+          "name": "404 – Unknown Route",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/nonexistent" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 404', () => pm.response.to.have.status(404));"
+          ]}}]
+        }
+      ]
+    }
+  ]
+}

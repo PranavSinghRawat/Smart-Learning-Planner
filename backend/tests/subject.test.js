@@ -6,12 +6,13 @@ let examId;
 
 const setupUserAndExam = async () => {
   await request(app).post('/api/auth/register').send({
+    username: 'subjectuser',
     name: 'Subject User',
     email: 'subjectuser@example.com',
     password: 'password123',
   });
   const loginRes = await request(app).post('/api/auth/login').send({
-    email: 'subjectuser@example.com',
+    username: 'subjectuser',
     password: 'password123',
   });
   const authToken = loginRes.body.token;
@@ -41,12 +42,35 @@ describe('Subjects API', () => {
       expect(res.body.subject).toHaveProperty('subjectName', 'Organic Chemistry');
     });
 
+    it('should return 400 for invalid difficulty value', async () => {
+      const res = await request(app)
+        .post('/api/subjects')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ examId, subjectName: 'Physics', difficulty: 'extreme' });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('should return 400 if subjectName is missing', async () => {
+      const res = await request(app)
+        .post('/api/subjects')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ examId, difficulty: 'easy' });
+      expect(res.statusCode).toBe(400);
+    });
+
     it('should return 404 if examId does not belong to user', async () => {
       const res = await request(app)
         .post('/api/subjects')
         .set('Authorization', `Bearer ${token}`)
         .send({ examId: '507f1f77bcf86cd799439011', subjectName: 'Maths', difficulty: 'easy' });
       expect(res.statusCode).toBe(404);
+    });
+
+    it('should return 401 without token', async () => {
+      const res = await request(app)
+        .post('/api/subjects')
+        .send({ examId, subjectName: 'Biology', difficulty: 'medium' });
+      expect(res.statusCode).toBe(401);
     });
   });
 
@@ -62,6 +86,11 @@ describe('Subjects API', () => {
         .set('Authorization', `Bearer ${token}`);
       expect(res.statusCode).toBe(200);
       expect(Array.isArray(res.body.subjects)).toBe(true);
+    });
+
+    it('should return 401 without token', async () => {
+      const res = await request(app).get('/api/subjects');
+      expect(res.statusCode).toBe(401);
     });
   });
 });

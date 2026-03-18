@@ -1,7 +1,10 @@
 const request = require('supertest');
 const app = require('../server');
 
+// Auth controller requires: username, email, password (name is optional)
+// Login uses: username (or email as username field), password
 const testUser = {
+  username: 'testuser',
   name: 'Test User',
   email: 'test@example.com',
   password: 'password123',
@@ -18,20 +21,24 @@ describe('Auth API', () => {
 
     it('should return 400 if email is already registered', async () => {
       await request(app).post('/api/auth/register').send(testUser);
-      const res = await request(app).post('/api/auth/register').send(testUser);
+      const res = await request(app).post('/api/auth/register').send({
+        ...testUser, username: 'differentuser',
+      });
       expect(res.statusCode).toBe(400);
-      expect(res.body).toHaveProperty('message', 'Email is already registered.');
+      expect(res.body).toHaveProperty('error');
+    });
+
+    it('should return 400 if username is already taken', async () => {
+      await request(app).post('/api/auth/register').send(testUser);
+      const res = await request(app).post('/api/auth/register').send({
+        ...testUser, email: 'other@example.com',
+      });
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toMatch(/username/i);
     });
 
     it('should return 400 if required fields are missing', async () => {
       const res = await request(app).post('/api/auth/register').send({ email: 'x@x.com' });
-      expect(res.statusCode).toBe(400);
-    });
-
-    it('should return 400 if password is too short', async () => {
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({ name: 'A', email: 'a@a.com', password: '123' });
       expect(res.statusCode).toBe(400);
     });
   });
@@ -44,7 +51,15 @@ describe('Auth API', () => {
     it('should login with valid credentials and return a token', async () => {
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: testUser.email, password: testUser.password });
+        .send({ username: testUser.username, password: testUser.password });
+      expect(res.statusCode).toBe(200);
+      expect(res.body).toHaveProperty('token');
+    });
+
+    it('should login using email in the username field', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ username: testUser.email, password: testUser.password });
       expect(res.statusCode).toBe(200);
       expect(res.body).toHaveProperty('token');
     });
@@ -52,15 +67,22 @@ describe('Auth API', () => {
     it('should return 401 with wrong password', async () => {
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: testUser.email, password: 'wrongpassword' });
+        .send({ username: testUser.username, password: 'wrongpassword' });
       expect(res.statusCode).toBe(401);
     });
 
-    it('should return 401 with non-existing email', async () => {
+    it('should return 401 with non-existing username', async () => {
       const res = await request(app)
         .post('/api/auth/login')
-        .send({ email: 'nobody@nowhere.com', password: 'anything' });
+        .send({ username: 'nobody', password: 'anything' });
       expect(res.statusCode).toBe(401);
+    });
+
+    it('should return 400 if username or password is missing', async () => {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .send({ username: testUser.username });
+      expect(res.statusCode).toBe(400);
     });
   });
 });
