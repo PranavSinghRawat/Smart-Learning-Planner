@@ -8,18 +8,28 @@
     "dev": "nodemon server.js",
     "test": "NODE_ENV=test jest --runInBand --forceExit"
   },
-  "keywords": ["express", "mongodb", "jwt", "education"],
+  "keywords": [
+    "express",
+    "mongodb",
+    "jwt",
+    "education"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "jest": {
     "testEnvironment": "node",
-    "setupFilesAfterEnv": ["./tests/setup.js"],
-    "testMatch": ["**/tests/**/*.test.js"],
+    "setupFilesAfterEnv": [
+      "./tests/setup.js"
+    ],
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
     "testTimeout": 30000,
     "verbose": true
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",

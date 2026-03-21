@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  Box, Chip, Collapse, Typography, Link, Avatar,
+  Box, Chip, Collapse, Typography, Link, Avatar, CircularProgress,
 } from "@mui/material";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import ArticleIcon from "@mui/icons-material/Article";
@@ -377,9 +377,37 @@ function generateStepsForTopic(topicName) {
 
 export default function ResourcePanel({ topicName }) {
   const [open, setOpen] = useState(false);
+  const [aiData, setAiData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+
   const catalogData = findResource(topicName);
-  const data = catalogData || generateStepsForTopic(topicName);
-  const isCurated = !!catalogData;
+  // Use catalog data if available, otherwise use AI data or fallback
+  const data = catalogData || aiData || generateStepsForTopic(topicName);
+  const isAI = !catalogData && !!aiData;
+
+  const handleOpen = async () => {
+    const next = !open;
+    setOpen(next);
+    // Fetch from Gemini only if not already fetched and no catalog data
+    if (next && !catalogData && !aiData && !loading) {
+      setLoading(true);
+      setError(false);
+      try {
+        const subject = topicName.includes(" - ") ? topicName.split(" - ")[0] : "";
+        const res = await fetch(
+          `http://localhost:5001/api/resources?topic=${encodeURIComponent(topicName)}&subject=${encodeURIComponent(subject)}`
+        );
+        if (!res.ok) throw new Error("API error");
+        const json = await res.json();
+        if (json.steps) setAiData(json);
+      } catch (e) {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
 
   return (
     <Box sx={{ mt: 1 }} onClick={e => e.stopPropagation()}>
@@ -387,7 +415,7 @@ export default function ResourcePanel({ topicName }) {
         size="small"
         icon={open ? <ExpandLessIcon sx={{ fontSize: "14px !important" }} /> : <ExpandMoreIcon sx={{ fontSize: "14px !important" }} />}
         label={open ? "Hide Resources" : "📚 View Resources & Steps"}
-        onClick={() => setOpen(o => !o)}
+        onClick={handleOpen}
         sx={{
           cursor: "pointer",
           background: open ? "#EFF6FF" : "#F0FDF4",
@@ -402,15 +430,32 @@ export default function ResourcePanel({ topicName }) {
       <Collapse in={open}>
         <Box sx={{ mt: 1.5, borderRadius: 2, border: "1px solid #E2E8F0", overflow: "hidden" }}>
 
-          {!isCurated && (
-            <Box sx={{ px: 2, py: 1, background: "#F0FDF4", borderBottom: "1px solid #BBF7D0" }}>
-              <Typography variant="caption" sx={{ color: "#065F46", fontWeight: 600 }}>
-                ✨ Smart resources — curated links for this specific topic
+          {isAI && (
+            <Box sx={{ px: 2, py: 1, background: "#EFF6FF", borderBottom: "1px solid #BFDBFE" }}>
+              <Typography variant="caption" sx={{ color: "#1D4ED8", fontWeight: 600 }}>
+                ✨ AI-generated resources by Gemini — tailored for this topic
               </Typography>
             </Box>
           )}
 
-          {data.steps.map((step, i) => (
+          {loading && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 2 }}>
+              <CircularProgress size={16} />
+              <Typography variant="caption" sx={{ color: "#64748B" }}>
+                Generating resources with Gemini AI...
+              </Typography>
+            </Box>
+          )}
+
+          {error && (
+            <Box sx={{ px: 2, py: 1.5 }}>
+              <Typography variant="caption" sx={{ color: "#DC2626" }}>
+                Could not load AI resources. Showing curated fallback below.
+              </Typography>
+            </Box>
+          )}
+
+          {!loading && data.steps.map((step, i) => (
             <Box key={i} sx={{ p: 2, background: i % 2 === 0 ? "#FAFBFC" : "#FFFFFF", borderBottom: i < data.steps.length - 1 ? "1px solid #F1F5F9" : "none" }}>
 
               <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, mb: 1.5 }}>
