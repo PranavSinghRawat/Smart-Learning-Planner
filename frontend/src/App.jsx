@@ -23,6 +23,7 @@ import Auth from "./pages/Auth";
 import ExamPlanner from "./pages/ExamPlanner";
 import CareerGoals from "./pages/CareerGoals";
 import SmartPlan from "./pages/SmartPlan";
+import PerformancePredictor from "./pages/PerformancePredictor";
 import ResourcePanel from "./components/ResourcePanel";
 import { SUBJECTS_DB as CATALOG_DB } from "./data/subjects";
 
@@ -268,7 +269,7 @@ function App() {
             <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>📚 Smart Learning Planner</Typography>
             {currentUsername && <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>👋 {currentUsername}</Typography>}
           </Box>
-          {[["📖 Study Planner", 0], ["📝 Exam Planner", 1], ["🎯 Career Goals", 2], ["🧠 Smart Plan", 3]].map(([label, idx]) => (
+          {[["📖 Study Planner", 0], ["📝 Exam Planner", 1], ["🎯 Career Goals", 2], ["🧠 Smart Plan", 3], ["🔮 AI Predictor", 4]].map(([label, idx]) => (
             <Button key={idx} color="inherit" onClick={() => setActiveTab(idx)}
               sx={{ textTransform: "capitalize", fontWeight: activeTab === idx ? 700 : 400,
                 background: activeTab === idx ? "rgba(255,255,255,0.2)" : "transparent",
@@ -292,6 +293,7 @@ function App() {
         {activeTab === 1 && <ExamPlanner token={token} />}
         {activeTab === 2 && <CareerGoals userId={currentUserId} />}
         {activeTab === 3 && <SmartPlan token={token} userId={currentUserId} />}
+        {activeTab === 4 && <PerformancePredictor />}
 
         {/* STUDY PLANNER (tab 0) */}
         {activeTab === 0 && (<>

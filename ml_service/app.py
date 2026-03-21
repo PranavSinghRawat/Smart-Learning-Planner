@@ -24,7 +24,7 @@ CORS(app)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-# Load model and scaler at startup
+# Load MLP model and scaler at startup
 try:
     with open(os.path.join(BASE, "mlp_model.pkl"), "rb") as f:
         model = pickle.load(f)
@@ -34,7 +34,17 @@ try:
     print("MLP model loaded successfully.")
 except FileNotFoundError:
     MODEL_LOADED = False
-    print("WARNING: Model not found. Run train_model.py first.")
+    print("WARNING: MLP model not found. Run train_model.py first.")
+
+# Load LSTM model at startup
+try:
+    with open(os.path.join(BASE, "lstm_model.pkl"), "rb") as f:
+        lstm_model = pickle.load(f)
+    LSTM_LOADED = True
+    print("LSTM model loaded successfully.")
+except FileNotFoundError:
+    LSTM_LOADED = False
+    print("WARNING: LSTM model not found. Run lstm_train.py first.")
 
 
 @app.route("/health", methods=["GET"])
@@ -93,3 +103,35 @@ def score():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002, debug=False)
+
+
+@app.route("/predict", methods=["POST"])
+def predict():
+    """
+    LSTM endpoint — predicts next day performance from last 7 days.
+    Body: { "scores": [0.6, 0.65, 0.7, 0.68, 0.72, 0.75, 0.78] }
+    Returns: predicted score, status, trend, message
+    """
+    if not LSTM_LOADED:
+        return jsonify({"error": "LSTM model not loaded. Run lstm_train.py first."}), 503
+
+    data = request.get_json()
+    if not data or "scores" not in data:
+        return jsonify({"error": "Request body must contain 'scores' array of 7 values."}), 400
+
+    scores = data["scores"]
+    if len(scores) != 7:
+        return jsonify({"error": "Exactly 7 daily scores required (one per day)."}), 400
+
+    try:
+        scores = [float(s) for s in scores]
+        result = lstm_model.predict_single(scores)
+        result["model_info"] = {
+            "type": "LSTM (Long Short-Term Memory)",
+            "unit": "Deep Learning Unit III — Sequence Modeling",
+            "architecture": "Input(7 timesteps) -> LSTM(64) -> Dropout(0.2) -> LSTM(32) -> Dense(16,ReLU) -> Output(1)",
+            "why_lstm": "Solves vanishing gradient problem of vanilla RNNs using forget/input/output gates",
+        }
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
