@@ -109,4 +109,62 @@ Rules:
   }
 };
 
-module.exports = { getResources, generateStudyPlan };
+const generateSmartPlan = async (req, res) => {
+  const { day, topics, subject, hours } = req.body;
+  if (!topics || !topics.length) return res.status(400).json({ error: 'topics are required' });
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const topicList = topics.map(t => `- ${t.name} (${t.hours || 1}h)`).join('\n');
+
+    const prompt = `You are an expert study coach. A student needs to study the following topics for Day ${day || 1} of their ${subject || 'subject'} plan. They have ${hours || 2} hours total.
+
+Topics to cover:
+${topicList}
+
+Create a detailed smart study plan. Return ONLY raw JSON (no markdown, no code blocks, no extra text):
+{
+  "overview": "2-3 sentence strategy overview for this day",
+  "schedule": [
+    {
+      "time": "9:00 - 9:45",
+      "activity": "specific activity description",
+      "type": "study",
+      "tip": "one actionable tip for this slot"
+    }
+  ],
+  "topicBreakdown": [
+    {
+      "topic": "topic name",
+      "duration": 45,
+      "approach": "active recall",
+      "resources": "suggested resource or technique"
+    }
+  ],
+  "tips": ["tip 1", "tip 2", "tip 3"]
+}
+
+Rules:
+- type must be one of: study, revision, break, practice
+- Schedule must fit within ${hours || 2} hours total
+- Include 1 short break per 90 mins
+- approach should be specific: active recall, spaced repetition, practice problems, concept mapping, etc.
+- tips should be practical and specific to these topics
+- Return ONLY the JSON object, nothing else`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const cleaned = text
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    const data = JSON.parse(cleaned);
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Smart plan error:', error.message);
+    res.status(500).json({ error: 'Failed to generate smart plan: ' + error.message });
+  }
+};
+
+module.exports = { getResources, generateStudyPlan, generateSmartPlan };

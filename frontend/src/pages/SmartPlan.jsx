@@ -1,156 +1,127 @@
 import React, { useState, useEffect } from "react";
 import {
   Box, Card, CardContent, Typography, Button, Grid, Chip,
-  List, ListItem, ListItemIcon, ListItemText, LinearProgress,
-  Alert, FormControl, InputLabel, Select, MenuItem, Rating, Dialog,
-  DialogTitle, DialogContent, DialogActions, Tooltip,
+  Alert, CircularProgress, Divider, List, ListItem, ListItemText,
+  LinearProgress,
 } from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
-import BoltIcon from "@mui/icons-material/Bolt";
 import PsychologyIcon from "@mui/icons-material/Psychology";
-import { CAREER_ROADMAPS } from "./CareerGoals";
+import BoltIcon from "@mui/icons-material/Bolt";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-const API = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 const C = { primary: "#0F766E", secondary: "#06B6D4" };
 
-const scoreColor = (s) => s >= 0.7 ? "#10B981" : s >= 0.4 ? "#F59E0B" : "#EF4444";
-const scoreLabel = (s) => s >= 0.7 ? "High" : s >= 0.4 ? "Medium" : "Low";
-
-export default function SmartPlan({ token, userId }) {
-  const [career, setCareer] = useState("Android Developer");
-  const [careerProgress, setCareerProgress] = useState({});
-  const [sessions, setSessions] = useState([]);
-  const [generated, setGenerated] = useState(false);
+export default function SmartPlan({ token, userId, dayContext, onClearDay }) {
+  const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [scoringSource, setScoringSource] = useState("");
-  const [serverMessage, setServerMessage] = useState("");
-  const [ratingDialog, setRatingDialog] = useState({ open: false, idx: null });
-  const [pendingRating, setPendingRating] = useState(3);
-  const [hoursAvailable, setHoursAvailable] = useState(4);
+  const [error, setError] = useState("");
 
-  const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
-
+  // Auto-generate when a day is passed in from Study Planner
   useEffect(() => {
-    try {
-      const cp = localStorage.getItem(`careerProgress_${userId}`);
-      if (cp) setCareerProgress(JSON.parse(cp));
-    } catch {}
-  }, [userId]);
+    if (dayContext) generateForDay(dayContext);
+  }, [dayContext]);
 
-  const generate = async () => {
+  const generateForDay = async (ctx) => {
     setLoading(true);
+    setError("");
+    setPlan(null);
     try {
-      const res = await fetch(`${API}/smartplan/generate`, {
+      const topicNames = ctx.topics.map(t => t.name).join(", ");
+      const res = await fetch(`${API}/resources/smartplan`, {
         method: "POST",
-        headers,
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          hoursAvailable,
-          careerGoal: career,
-          careerProgress,
-          sessionHistory: [],
+          day: ctx.day,
+          topics: ctx.topics,
+          subject: ctx.subject,
+          hours: ctx.hours,
         }),
       });
       const data = await res.json();
-      if (!res.ok) { alert(data.message || "Failed to generate plan."); return; }
-      if (!data.sessions.length) { alert(data.message || "No sessions. Add exams with weak topics first."); return; }
-      setSessions(data.sessions.map(s => ({ ...s, completed: false, confidence: 0 })));
-      setScoringSource(data.scoringSource);
-      setServerMessage(data.message);
-      setGenerated(true);
+      if (!res.ok) throw new Error(data.error || "Failed to generate smart plan");
+      setPlan({ ...data, dayContext: ctx });
     } catch (e) {
-      alert("Network error: " + e.message);
+      setError(e.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const openRating = (idx) => { setRatingDialog({ open: true, idx }); setPendingRating(3); };
-  const confirmRating = () => {
-    setSessions(prev => prev.map((s, i) => i !== ratingDialog.idx ? s : { ...s, completed: true, confidence: pendingRating }));
-    setRatingDialog({ open: false, idx: null });
-  };
-  const toggleSession = (idx) => {
-    if (!sessions[idx].completed) openRating(idx);
-    else setSessions(prev => prev.map((s, i) => i !== idx ? s : { ...s, completed: false, confidence: 0 }));
-  };
-
-  const done = sessions.filter(s => s.completed).length;
-  const totalMins = sessions.reduce((s, x) => s + x.duration, 0);
-  const doneMins = sessions.filter(s => s.completed).reduce((s, x) => s + x.duration, 0);
-
   return (
     <Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 3 }}>
-        <PsychologyIcon sx={{ fontSize: 36, color: C.primary }} />
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: C.primary }}>Smart Plan for Today</Typography>
-          <Typography variant="caption" color="textSecondary">
-            Powered by MLP Deep Learning Model (Unit I: Feedforward Neural Network)
-          </Typography>
+      {/* Header */}
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          <PsychologyIcon sx={{ fontSize: 36, color: C.primary }} />
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 700, color: C.primary }}>
+              Smart Plan
+            </Typography>
+            <Typography variant="caption" color="textSecondary">
+              Gemini AI generates a detailed hour-by-hour study strategy for your day
+            </Typography>
+          </Box>
         </Box>
+        {onClearDay && plan && (
+          <Button variant="outlined" size="small" onClick={onClearDay}
+            sx={{ borderColor: C.primary, color: C.primary, borderRadius: 2 }}>
+            ← Back to Study Planner
+          </Button>
+        )}
       </Box>
 
-      <Card sx={{ mb: 3, borderRadius: 3, border: "1px solid #E2E8F0" }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: C.primary }}>Plan Settings</Typography>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
-                <InputLabel>Career Goal</InputLabel>
-                <Select value={career} onChange={e => setCareer(e.target.value)} label="Career Goal" sx={{ borderRadius: 2 }}>
-                  {Object.entries(CAREER_ROADMAPS).map(([k, v]) => (
-                    <MenuItem key={k} value={k}>{v.emoji} {k}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
-                <InputLabel>Hours Available Today</InputLabel>
-                <Select value={hoursAvailable} onChange={e => setHoursAvailable(e.target.value)} label="Hours Available Today" sx={{ borderRadius: 2 }}>
-                  {[1,2,3,4,5,6,8].map(h => <MenuItem key={h} value={h}>{h} hour{h > 1 ? "s" : ""}</MenuItem>)}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Button fullWidth variant="contained" startIcon={<BoltIcon />} onClick={generate} disabled={loading}
-                sx={{ background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})`, borderRadius: 2, fontWeight: 700, py: 1.8 }}>
-                {loading ? "Scoring with MLP..." : "Generate Smart Plan"}
-              </Button>
-            </Grid>
-          </Grid>
-
-          <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
-            The backend scores each candidate session using a trained <strong>Feedforward Neural Network (MLP)</strong> —
-            features: difficulty, days to exam, past hours, confidence, topic weight, hours available.
-            Sessions are ranked by effectiveness score and the best ones are selected for your day.
-          </Alert>
-        </CardContent>
-      </Card>
-
-      {generated && scoringSource && (
-        <Alert severity={scoringSource === "mlp" ? "success" : "warning"} sx={{ mb: 3, borderRadius: 2 }}>
-          {scoringSource === "mlp"
-            ? "Sessions scored by MLP deep learning model (R2=0.95, RMSE=0.032)"
-            : "ML service offline — using rule-based fallback scoring"}
-          {" "}{serverMessage}
-        </Alert>
+      {/* No context state */}
+      {!dayContext && !plan && !loading && (
+        <Card sx={{ borderRadius: 3, border: "2px dashed #CBD5E1", textAlign: "center" }}>
+          <CardContent sx={{ py: 6 }}>
+            <Typography variant="h2" sx={{ mb: 2 }}>🧠</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, color: "#64748B", mb: 1 }}>
+              No Day Selected
+            </Typography>
+            <Typography variant="body2" color="textSecondary">
+              Go to Study Planner, generate a plan, then click the
+              <strong> "🧠 Smart Plan"</strong> button on any day card to get a detailed AI study strategy.
+            </Typography>
+          </CardContent>
+        </Card>
       )}
 
-      {generated && sessions.length > 0 && (
+      {/* Loading */}
+      {loading && (
+        <Card sx={{ borderRadius: 3, border: "1px solid #E2E8F0", textAlign: "center" }}>
+          <CardContent sx={{ py: 6 }}>
+            <CircularProgress sx={{ color: C.primary, mb: 2 }} />
+            <Typography variant="h6" sx={{ fontWeight: 600, color: C.primary }}>
+              🤖 Gemini is building your smart plan...
+            </Typography>
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+              Analyzing topics and creating an optimized hour-by-hour schedule
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+
+      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
+
+      {/* Plan result */}
+      {plan && !loading && (
         <>
+          <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+            ✨ Smart plan generated by Gemini AI for Day {plan.dayContext?.day} — {plan.dayContext?.subject}
+          </Alert>
+
+          {/* Day summary */}
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {[
-              { label: "Total Sessions", value: sessions.length, color: C.primary },
-              { label: "Completed", value: done, color: "#10B981" },
-              { label: "Total Time", value: `${Math.floor(totalMins/60)}h ${totalMins%60}m`, color: C.secondary },
-              { label: "Time Done", value: `${Math.floor(doneMins/60)}h ${doneMins%60}m`, color: "#F59E0B" },
+              { label: "Day", value: `Day ${plan.dayContext?.day}`, color: C.primary },
+              { label: "Subject", value: plan.dayContext?.subject || "—", color: C.secondary },
+              { label: "Topics", value: plan.dayContext?.topics?.length || 0, color: "#8B5CF6" },
+              { label: "Hours", value: `${plan.dayContext?.hours}h`, color: "#F59E0B" },
             ].map(s => (
               <Grid item xs={6} sm={3} key={s.label}>
                 <Card sx={{ borderRadius: 3, textAlign: "center", border: `2px solid ${s.color}30` }}>
-                  <CardContent sx={{ py: 2 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700, color: s.color }}>{s.value}</Typography>
+                  <CardContent sx={{ py: 1.5 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 700, color: s.color }}>{s.value}</Typography>
                     <Typography variant="caption" color="textSecondary">{s.label}</Typography>
                   </CardContent>
                 </Card>
@@ -158,86 +129,108 @@ export default function SmartPlan({ token, userId }) {
             ))}
           </Grid>
 
-          <LinearProgress variant="determinate" value={sessions.length ? Math.round((done/sessions.length)*100) : 0}
-            sx={{ height: 10, borderRadius: 5, mb: 3, background: "#E2E8F0",
-              "& .MuiLinearProgress-bar": { background: `linear-gradient(90deg, ${C.primary}, ${C.secondary})` } }} />
-
-          <Card sx={{ borderRadius: 3, border: "1px solid #E2E8F0" }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>
-                Today's Sessions
-                <Typography component="span" variant="caption" color="textSecondary" sx={{ ml: 1 }}>
-                  (sorted by MLP effectiveness score)
+          {/* Overview */}
+          {plan.overview && (
+            <Card sx={{ mb: 3, borderRadius: 3, background: "#F0F9FF", border: "1px solid #BAE6FD" }}>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: C.primary, mb: 1 }}>
+                  📋 Study Strategy Overview
                 </Typography>
-              </Typography>
-              <List sx={{ p: 0 }}>
-                {sessions.map((s, i) => (
-                  <ListItem key={i} onClick={() => toggleSession(i)}
-                    sx={{ py: 1.5, borderBottom: "1px solid #E2E8F0", "&:last-child": { borderBottom: "none" },
-                      cursor: "pointer", "&:hover": { background: "#F0F9FF" } }}>
-                    <ListItemIcon sx={{ minWidth: 40 }}>
-                      {s.completed
-                        ? <CheckCircleIcon sx={{ color: "#10B981", fontSize: 24 }} />
-                        : <RadioButtonUncheckedIcon sx={{ color: "#CBD5E1", fontSize: 24 }} />}
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={
-                        <Typography sx={{ fontWeight: 600, textDecoration: s.completed ? "line-through" : "none",
-                          color: s.completed ? "#94A3B8" : "#1E293B" }}>
-                          {s.type === "exam" ? "Exam:" : "Career:"} {s.label}
+                <Typography variant="body2" color="textSecondary">{plan.overview}</Typography>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Hour-by-hour schedule */}
+          {plan.schedule && plan.schedule.length > 0 && (
+            <Card sx={{ mb: 3, borderRadius: 3, border: "1px solid #E2E8F0" }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: C.primary, mb: 2 }}>
+                  ⏰ Hour-by-Hour Schedule
+                </Typography>
+                <List sx={{ p: 0 }}>
+                  {plan.schedule.map((slot, i) => (
+                    <ListItem key={i} sx={{
+                      py: 1.5, borderBottom: "1px solid #F1F5F9",
+                      "&:last-child": { borderBottom: "none" },
+                      alignItems: "flex-start",
+                    }}>
+                      <Box sx={{ minWidth: 80, mr: 2 }}>
+                        <Chip label={slot.time} size="small"
+                          sx={{ background: `${C.primary}15`, color: C.primary, fontWeight: 700, fontSize: "0.7rem" }} />
+                      </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#1E293B", mb: 0.5 }}>
+                          {slot.activity}
                         </Typography>
-                      }
-                      secondary={
-                        <Box sx={{ display: "flex", gap: 1, mt: 0.5, flexWrap: "wrap", alignItems: "center" }}>
-                          <Chip label={`${s.duration} mins`} size="small" />
-                          {s.type === "exam" && (
-                            <Chip label={s.urgency} size="small"
-                              sx={{ background: s.daysLeft <= 3 ? "#FEE2E2" : s.daysLeft <= 7 ? "#FEF3C7" : "#D1FAE5" }} />
-                          )}
-                          {s.type === "career" && (
-                            <Chip label={s.phase} size="small" sx={{ background: "#EFF6FF", color: C.primary }} />
-                          )}
-                          <Tooltip title="MLP Effectiveness Score (0-1). Higher = more beneficial to study today.">
-                            <Chip
-                              label={`MLP Score: ${s.effectivenessScore?.toFixed(2)} (${scoreLabel(s.effectivenessScore)})`}
-                              size="small"
-                              sx={{ background: scoreColor(s.effectivenessScore) + "20",
-                                color: scoreColor(s.effectivenessScore), fontWeight: 700, cursor: "help" }}
-                            />
-                          </Tooltip>
-                          {s.completed && s.confidence > 0 && (
-                            <Chip label={`Confidence: ${s.confidence}/5`} size="small" sx={{ background: "#FEF9C3" }} />
-                          )}
+                        {slot.tip && (
+                          <Typography variant="caption" color="textSecondary">
+                            💡 {slot.tip}
+                          </Typography>
+                        )}
+                      </Box>
+                      {slot.type && (
+                        <Chip label={slot.type} size="small"
+                          sx={{
+                            background: slot.type === "break" ? "#FEF3C7" : slot.type === "revision" ? "#EFF6FF" : "#D1FAE5",
+                            color: slot.type === "break" ? "#92400E" : slot.type === "revision" ? "#1D4ED8" : "#065F46",
+                            fontSize: "0.65rem", fontWeight: 600,
+                          }} />
+                      )}
+                    </ListItem>
+                  ))}
+                </List>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Topic breakdown */}
+          {plan.topicBreakdown && plan.topicBreakdown.length > 0 && (
+            <Card sx={{ mb: 3, borderRadius: 3, border: "1px solid #E2E8F0" }}>
+              <CardContent>
+                <Typography variant="h6" sx={{ fontWeight: 700, color: C.primary, mb: 2 }}>
+                  📚 Topic Breakdown
+                </Typography>
+                <Grid container spacing={2}>
+                  {plan.topicBreakdown.map((t, i) => (
+                    <Grid item xs={12} sm={6} key={i}>
+                      <Box sx={{ p: 2, background: "#F8FAFC", borderRadius: 2, border: "1px solid #E2E8F0" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B", mb: 0.5 }}>
+                          {t.topic}
+                        </Typography>
+                        <Box sx={{ display: "flex", gap: 1, mb: 1, flexWrap: "wrap" }}>
+                          <Chip label={`${t.duration} mins`} size="small" sx={{ background: "#EFF6FF", color: C.primary, fontSize: "0.65rem" }} />
+                          <Chip label={t.approach} size="small" sx={{ background: "#D1FAE5", color: "#065F46", fontSize: "0.65rem" }} />
                         </Box>
-                      }
-                    />
-                  </ListItem>
+                        {t.resources && (
+                          <Typography variant="caption" color="textSecondary">{t.resources}</Typography>
+                        )}
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tips */}
+          {plan.tips && plan.tips.length > 0 && (
+            <Card sx={{ borderRadius: 3, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+              <CardContent>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#92400E", mb: 1.5 }}>
+                  ⚡ Pro Tips for Today
+                </Typography>
+                {plan.tips.map((tip, i) => (
+                  <Box key={i} sx={{ display: "flex", gap: 1, mb: 1 }}>
+                    <CheckCircleIcon sx={{ color: "#F59E0B", fontSize: 18, mt: 0.2, flexShrink: 0 }} />
+                    <Typography variant="body2" color="textSecondary">{tip}</Typography>
+                  </Box>
                 ))}
-              </List>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
-
-      <Dialog open={ratingDialog.open} onClose={() => setRatingDialog({ open: false, idx: null })} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontWeight: 700, background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})`, color: "#fff" }}>
-          Rate Your Confidence
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3, textAlign: "center" }}>
-          <Typography variant="body1" sx={{ mb: 2 }}>How confident do you feel after this session?</Typography>
-          <Rating value={pendingRating} onChange={(_, v) => setPendingRating(v)} size="large" />
-          <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1 }}>
-            {["", "Not confident", "Slightly confident", "Moderately confident", "Confident", "Very confident"][pendingRating] || ""}
-          </Typography>
-          <Alert severity="info" sx={{ mt: 2, textAlign: "left", fontSize: "0.75rem" }}>
-            Your confidence rating is stored as a feature for future MLP scoring — the model learns your patterns over time.
-          </Alert>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setRatingDialog({ open: false, idx: null })}>Skip</Button>
-          <Button variant="contained" onClick={confirmRating} sx={{ background: C.primary, fontWeight: 600 }}>Mark Complete</Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

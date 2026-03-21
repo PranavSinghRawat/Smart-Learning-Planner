@@ -20,8 +20,6 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import StopIcon from "@mui/icons-material/Stop";
 import Auth from "./pages/Auth";
-import ExamPlanner from "./pages/ExamPlanner";
-import CareerGoals from "./pages/CareerGoals";
 import SmartPlan from "./pages/SmartPlan";
 import PerformancePredictor from "./pages/PerformancePredictor";
 import ResourcePanel from "./components/ResourcePanel";
@@ -91,6 +89,7 @@ function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [smartPlanContext, setSmartPlanContext] = useState(null);
 
   const getCustomSubjectsKey = (uid) => `customSubjects_${uid}`;
   const getStudyHistoryKey   = (uid) => `studyHistory_${uid}`;
@@ -287,7 +286,7 @@ function App() {
             <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>📚 Smart Learning Planner</Typography>
             {currentUsername && <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>👋 {currentUsername}</Typography>}
           </Box>
-          {[["📖 Study Planner", 0], ["📝 Exam Planner", 1], ["🎯 Career Goals", 2], ["🧠 Smart Plan", 3], ["🔮 AI Predictor", 4]].map(([label, idx]) => (
+          {[["📖 Study Planner", 0], ["🧠 Smart Plan", 1], ["🔮 AI Predictor", 2]].map(([label, idx]) => (
             <Button key={idx} color="inherit" onClick={() => setActiveTab(idx)}
               sx={{ textTransform: "capitalize", fontWeight: activeTab === idx ? 700 : 400,
                 background: activeTab === idx ? "rgba(255,255,255,0.2)" : "transparent",
@@ -308,10 +307,8 @@ function App() {
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* NEW PAGES */}
-        {activeTab === 1 && <ExamPlanner token={token} />}
-        {activeTab === 2 && <CareerGoals userId={currentUserId} />}
-        {activeTab === 3 && <SmartPlan token={token} userId={currentUserId} />}
-        {activeTab === 4 && <PerformancePredictor userId={currentUserId} />}
+        {activeTab === 1 && <SmartPlan token={token} userId={currentUserId} dayContext={smartPlanContext} onClearDay={() => { setSmartPlanContext(null); setActiveTab(0); }} />}
+        {activeTab === 2 && <PerformancePredictor userId={currentUserId} token={token} />}
 
         {/* STUDY PLANNER (tab 0) */}
         {activeTab === 0 && (<>
@@ -548,6 +545,16 @@ function App() {
                           <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
                             <Typography variant="caption" sx={{ fontWeight: 600, color: status.color }}>{dayProgress(day)}%</Typography>
                             <Chip label={status.text} size="small" sx={{ background: status.color, color: "#fff" }} />
+                            <Button size="small" variant="outlined"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSmartPlanContext({ day: day.day, topics: day.topics, subject, hours });
+                                setActiveTab(1);
+                              }}
+                              sx={{ borderColor: COLORS.primary, color: COLORS.primary, borderRadius: 2,
+                                fontSize: "0.7rem", py: 0.3, px: 1, minWidth: "auto", whiteSpace: "nowrap" }}>
+                              🧠 Smart Plan
+                            </Button>
                           </Box>
                         </Box>
                       </AccordionSummary>

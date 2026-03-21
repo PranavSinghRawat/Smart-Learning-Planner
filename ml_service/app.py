@@ -23,7 +23,7 @@ import os
 from lstm_train import SimpleLSTMPredictor
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
@@ -50,8 +50,10 @@ except FileNotFoundError:
     print("WARNING: LSTM model not found. Run lstm_train.py first.")
 
 
-@app.route("/health", methods=["GET"])
+@app.route("/health", methods=["GET", "OPTIONS"])
 def health():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     return jsonify({
         "status": "ok",
         "model": "MLP loaded" if MODEL_LOADED else "Model not found — run train_model.py",
@@ -104,8 +106,10 @@ def score():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/predict", methods=["POST"])
+@app.route("/predict", methods=["POST", "OPTIONS"])
 def predict():
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
     if not LSTM_LOADED:
         return jsonify({"error": "LSTM model not loaded. Run lstm_train.py first."}), 503
 
