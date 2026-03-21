@@ -395,8 +395,9 @@ export default function ResourcePanel({ topicName }) {
       setError(false);
       try {
         const subject = topicName.includes(" - ") ? topicName.split(" - ")[0] : "";
+        const base = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
         const res = await fetch(
-          `http://localhost:5001/api/resources?topic=${encodeURIComponent(topicName)}&subject=${encodeURIComponent(subject)}`
+          `${base}/api/resources?topic=${encodeURIComponent(topicName)}&subject=${encodeURIComponent(subject)}`
         );
         if (!res.ok) throw new Error("API error");
         const json = await res.json();
