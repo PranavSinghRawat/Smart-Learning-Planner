@@ -19,6 +19,9 @@ import numpy as np
 import pickle
 import os
 
+# Import LSTM class so pickle can deserialize it
+from lstm_train import SimpleLSTMPredictor
+
 app = Flask(__name__)
 CORS(app)
 
