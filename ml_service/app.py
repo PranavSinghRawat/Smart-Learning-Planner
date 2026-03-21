@@ -104,17 +104,8 @@ def score():
         return jsonify({"error": str(e)}), 500
 
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5002, debug=False)
-
-
 @app.route("/predict", methods=["POST"])
 def predict():
-    """
-    LSTM endpoint — predicts next day performance from last 7 days.
-    Body: { "scores": [0.6, 0.65, 0.7, 0.68, 0.72, 0.75, 0.78] }
-    Returns: predicted score, status, trend, message
-    """
     if not LSTM_LOADED:
         return jsonify({"error": "LSTM model not loaded. Run lstm_train.py first."}), 503
 
@@ -138,3 +129,7 @@ def predict():
         return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5002, debug=False)
