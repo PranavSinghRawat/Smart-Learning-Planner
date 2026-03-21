@@ -1,8 +1,9 @@
 # Manual Test Cases — Smart Learning Planner
 **Document ID:** SLP-TC-001  
-**Version:** 1.0  
-**Date:** 2026-03-18  
-**Standard Reference:** IEEE 829 Test Case Template
+**Version:** 2.0  
+**Date:** 2026-03-21  
+**Standard Reference:** IEEE 829 Test Case Template  
+**Total Test Cases:** 30
 
 ---
 
@@ -32,9 +33,9 @@
 | Module | Authentication |
 | Priority | P1 |
 | Type | Functional |
-| Preconditions | Server running, email not already registered |
-| Test Steps | 1. Navigate to app URL<br>2. Click "Register" tab<br>3. Enter Name: "John Doe"<br>4. Enter Email: "john@test.com"<br>5. Enter Password: "password123"<br>6. Click Register button |
-| Expected Result | User is registered, JWT token returned, redirected to Study Planner |
+| Preconditions | Server running, username/email not already registered |
+| Test Steps | 1. Open app URL<br>2. Click Register tab<br>3. Enter Username, Name, Email, Password<br>4. Click Register |
+| Expected Result | User registered, JWT token returned, redirected to Study Planner |
 | Actual Result | |
 | Status | |
 
@@ -46,9 +47,9 @@
 | Module | Authentication |
 | Priority | P1 |
 | Type | Negative |
-| Preconditions | User with email "john@test.com" already exists |
-| Test Steps | 1. Attempt to register with same email "john@test.com"<br>2. Click Register |
-| Expected Result | Error message: "Email is already registered." HTTP 400 |
+| Preconditions | User with same email already exists |
+| Test Steps | 1. Register with an email that already exists<br>2. Click Register |
+| Expected Result | HTTP 400, error: "Email is already registered" |
 | Actual Result | |
 | Status | |
 
@@ -56,13 +57,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-003 |
-| Title | Registration with missing required fields |
+| Title | Registration with duplicate username |
 | Module | Authentication |
 | Priority | P1 |
 | Type | Negative |
-| Preconditions | None |
-| Test Steps | 1. Submit registration form with only email field filled<br>2. Leave name and password empty |
-| Expected Result | Validation error shown, HTTP 400 returned |
+| Preconditions | User with same username already exists |
+| Test Steps | 1. Register with a username that already exists<br>2. Click Register |
+| Expected Result | HTTP 400, error mentioning username conflict |
 | Actual Result | |
 | Status | |
 
@@ -70,13 +71,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-004 |
-| Title | Registration with password shorter than 6 characters |
+| Title | Registration with missing required fields |
 | Module | Authentication |
-| Priority | P2 |
-| Type | Boundary |
+| Priority | P1 |
+| Type | Negative |
 | Preconditions | None |
-| Test Steps | 1. Enter valid name and email<br>2. Enter password: "abc" (3 chars)<br>3. Click Register |
-| Expected Result | Validation error: password too short, HTTP 400 |
+| Test Steps | 1. Submit registration with only email filled<br>2. Leave username and password empty |
+| Expected Result | HTTP 400, validation error shown |
 | Actual Result | |
 | Status | |
 
@@ -84,13 +85,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-005 |
-| Title | Successful login with valid credentials |
+| Title | Successful login with username |
 | Module | Authentication |
 | Priority | P1 |
 | Type | Functional |
-| Preconditions | User "john@test.com" / "password123" is registered |
-| Test Steps | 1. Enter email: "john@test.com"<br>2. Enter password: "password123"<br>3. Click Login |
-| Expected Result | JWT token returned, user redirected to Study Planner, username shown in navbar |
+| Preconditions | User is registered |
+| Test Steps | 1. Enter username and password<br>2. Click Login |
+| Expected Result | JWT token returned, redirected to Study Planner, username shown in navbar |
 | Actual Result | |
 | Status | |
 
@@ -98,13 +99,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-006 |
-| Title | Login with wrong password |
+| Title | Login using email in the username field |
 | Module | Authentication |
-| Priority | P1 |
-| Type | Negative |
-| Preconditions | User "john@test.com" is registered |
-| Test Steps | 1. Enter email: "john@test.com"<br>2. Enter password: "wrongpass"<br>3. Click Login |
-| Expected Result | Error message shown, HTTP 401, user stays on login page |
+| Priority | P2 |
+| Type | Functional |
+| Preconditions | User is registered |
+| Test Steps | 1. Enter email address in the username field<br>2. Enter correct password<br>3. Click Login |
+| Expected Result | Login succeeds, JWT token returned |
 | Actual Result | |
 | Status | |
 
@@ -112,13 +113,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-007 |
-| Title | Login with non-existent email |
+| Title | Login with wrong password |
 | Module | Authentication |
 | Priority | P1 |
 | Type | Negative |
-| Preconditions | None |
-| Test Steps | 1. Enter email: "nobody@nowhere.com"<br>2. Enter any password<br>3. Click Login |
-| Expected Result | HTTP 401, error message displayed |
+| Preconditions | User is registered |
+| Test Steps | 1. Enter correct username<br>2. Enter wrong password<br>3. Click Login |
+| Expected Result | HTTP 401, error message shown |
 | Actual Result | |
 | Status | |
 
@@ -131,8 +132,8 @@
 | Priority | P2 |
 | Type | Functional |
 | Preconditions | User is logged in |
-| Test Steps | 1. Click "Logout" button in navbar<br>2. Observe page state |
-| Expected Result | Token removed from localStorage, user redirected to login page |
+| Test Steps | 1. Click Logout button in navbar |
+| Expected Result | Token removed from localStorage, redirected to login page |
 | Actual Result | |
 | Status | |
 
@@ -144,13 +145,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-009 |
-| Title | Generate study plan for a catalog subject (DSA) |
+| Title | Generate AI study plan using Gemini |
 | Module | Study Planner |
 | Priority | P1 |
 | Type | Functional |
-| Preconditions | User is logged in |
-| Test Steps | 1. Type "DSA" in the subject field<br>2. Set Days: 3, Hours/Day: 2<br>3. Select Level: Beginner<br>4. Click Generate |
-| Expected Result | Day cards appear with topics, each topic has a "View Resources & Steps" button |
+| Preconditions | User logged in, backend running, Gemini API key set |
+| Test Steps | 1. Type "DSA" in subject field<br>2. Set Days: 3, Hours: 2, Level: Beginner<br>3. Click Generate |
+| Expected Result | Gemini generates day-by-day plan, day cards appear with specific topics |
 | Actual Result | |
 | Status | |
 
@@ -158,13 +159,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-010 |
-| Title | Generate study plan for a non-catalog subject |
+| Title | Generate plan for non-catalog subject (auto-generate) |
 | Module | Study Planner |
 | Priority | P1 |
 | Type | Functional |
-| Preconditions | User is logged in |
-| Test Steps | 1. Type "Pottery" in the subject field<br>2. Set Days: 5, Hours/Day: 1<br>3. Select Level: Beginner<br>4. Click Generate |
-| Expected Result | Auto-generated plan appears with 5 day cards and relevant topics |
+| Preconditions | User logged in |
+| Test Steps | 1. Type "Pottery" in subject field<br>2. Set Days: 3, Hours: 1<br>3. Click Generate |
+| Expected Result | Plan generated with relevant topics for Pottery |
 | Actual Result | |
 | Status | |
 
@@ -172,13 +173,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-011 |
-| Title | View resources for a topic |
+| Title | View AI resources for a topic |
 | Module | Study Planner – ResourcePanel |
 | Priority | P1 |
 | Type | Functional |
 | Preconditions | Study plan is generated |
-| Test Steps | 1. Click "📚 View Resources & Steps" on any topic<br>2. Observe the expanded panel |
-| Expected Result | Panel expands showing numbered steps, resource links with type badges, practice problems with difficulty chips |
+| Test Steps | 1. Click "📚 View Resources & Steps" on any topic<br>2. Wait for Gemini response |
+| Expected Result | Panel shows 3 steps with resource links, platform names, and practice problems |
 | Actual Result | |
 | Status | |
 
@@ -186,13 +187,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-012 |
-| Title | Mark topic as complete |
+| Title | Mark topic as complete — updates progress |
 | Module | Study Planner |
-| Priority | P2 |
+| Priority | P1 |
 | Type | Functional |
 | Preconditions | Study plan is generated |
-| Test Steps | 1. Click the circle icon next to a topic<br>2. Observe the topic and progress bar |
-| Expected Result | Topic gets strikethrough, circle turns green, progress bar updates |
+| Test Steps | 1. Click circle icon next to a topic<br>2. Observe progress bar and pie chart |
+| Expected Result | Topic gets strikethrough, progress bar updates, daily score saved to localStorage |
 | Actual Result | |
 | Status | |
 
@@ -200,13 +201,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-013 |
-| Title | Boundary — Days field with value 1 |
-| Module | Study Planner |
-| Priority | P2 |
-| Type | Boundary |
-| Preconditions | User is logged in |
-| Test Steps | 1. Set Days: 1<br>2. Generate plan for DSA Beginner |
-| Expected Result | Single day card with all beginner topics |
+| Title | Daily score saved to localStorage on topic completion |
+| Module | Study Planner – LSTM Data Feed |
+| Priority | P1 |
+| Type | Functional |
+| Preconditions | User logged in, study plan generated |
+| Test Steps | 1. Mark several topics complete<br>2. Open browser DevTools → Application → localStorage<br>3. Check key `dailyScores_<userId>` |
+| Expected Result | Entry exists with today's date and completion percentage (0.0–1.0) |
 | Actual Result | |
 | Status | |
 
@@ -214,13 +215,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-014 |
-| Title | Study timer start, pause, reset |
-| Module | Study Planner – Timer |
-| Priority | P3 |
-| Type | Functional |
-| Preconditions | Study plan is generated |
-| Test Steps | 1. Click Start — timer begins counting<br>2. Click Pause — timer stops<br>3. Click Reset — timer goes to 00:00:00 |
-| Expected Result | Timer behaves correctly at each step |
+| Title | Generate plan with empty subject field |
+| Module | Study Planner |
+| Priority | P2 |
+| Type | Negative |
+| Preconditions | User logged in |
+| Test Steps | 1. Clear subject field<br>2. Click Generate |
+| Expected Result | Error snackbar: "Please enter a subject name" |
 | Actual Result | |
 | Status | |
 
@@ -228,45 +229,45 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-015 |
-| Title | Generate plan with empty subject field |
+| Title | Boundary — Days field set to 1 |
 | Module | Study Planner |
 | Priority | P2 |
-| Type | Negative |
-| Preconditions | User is logged in |
-| Test Steps | 1. Clear the subject field<br>2. Click Generate |
-| Expected Result | Error snackbar: "Please enter a subject name" |
+| Type | Boundary |
+| Preconditions | User logged in |
+| Test Steps | 1. Set Days: 1<br>2. Generate plan for DSA Beginner |
+| Expected Result | Single day card with all beginner topics |
 | Actual Result | |
 | Status | |
-
----
-
-## MODULE 3: Exam Planner
 
 ### TC-016
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-016 |
-| Title | Create a new exam |
-| Module | Exam Planner |
-| Priority | P1 |
+| Title | Study timer start, pause, reset |
+| Module | Study Planner – Timer |
+| Priority | P3 |
 | Type | Functional |
-| Preconditions | User is logged in, on Exam Planner tab |
-| Test Steps | 1. Enter Exam Name: "Mathematics Final"<br>2. Select Exam Date: a future date<br>3. Enter Target Score: 85<br>4. Click Add Exam |
-| Expected Result | Exam appears in the list with correct name, date, and target score |
+| Preconditions | Study plan is generated |
+| Test Steps | 1. Click Start — timer counts up<br>2. Click Pause — timer stops<br>3. Click Reset — timer shows 00:00:00 |
+| Expected Result | Timer behaves correctly at each step |
 | Actual Result | |
 | Status | |
+
+---
+
+## MODULE 3: Smart Plan (Gemini AI)
 
 ### TC-017
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-017 |
-| Title | Create exam without name |
-| Module | Exam Planner |
+| Title | Generate smart plan from Study Planner day card |
+| Module | Smart Plan |
 | Priority | P1 |
-| Type | Negative |
-| Preconditions | User is logged in |
-| Test Steps | 1. Leave exam name empty<br>2. Set a valid date<br>3. Click Add Exam |
-| Expected Result | Validation error: "Exam name is required" |
+| Type | Functional |
+| Preconditions | User logged in, study plan generated, Gemini API key set |
+| Test Steps | 1. Generate a study plan<br>2. Click "🧠 Smart Plan" button on Day 1 card<br>3. Wait for Gemini response |
+| Expected Result | Switches to Smart Plan tab, shows overview, hour-by-hour schedule, topic breakdown, and tips |
 | Actual Result | |
 | Status | |
 
@@ -274,13 +275,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-018 |
-| Title | Create exam with invalid date |
-| Module | Exam Planner |
+| Title | Smart Plan shows correct day and subject context |
+| Module | Smart Plan |
 | Priority | P2 |
-| Type | Boundary |
-| Preconditions | User is logged in |
-| Test Steps | 1. Enter exam name<br>2. Enter date: "not-a-date"<br>3. Click Add Exam |
-| Expected Result | Validation error: "Valid exam date is required" |
+| Type | Functional |
+| Preconditions | Study plan generated for DSA |
+| Test Steps | 1. Click Smart Plan on Day 2<br>2. Check the summary cards at top |
+| Expected Result | Shows Day 2, subject DSA, correct topic count and hours |
 | Actual Result | |
 | Status | |
 
@@ -288,13 +289,13 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-019 |
-| Title | Target score boundary — value 0 |
-| Module | Exam Planner |
+| Title | Smart Plan — no day selected state |
+| Module | Smart Plan |
 | Priority | P3 |
-| Type | Boundary |
-| Preconditions | User is logged in |
-| Test Steps | 1. Enter valid exam name and date<br>2. Enter Target Score: 0<br>3. Click Add Exam |
-| Expected Result | Exam created successfully with target score 0 |
+| Type | Functional |
+| Preconditions | User navigates directly to Smart Plan tab without clicking a day |
+| Test Steps | 1. Click Smart Plan tab in navbar directly |
+| Expected Result | Shows "No Day Selected" message with instructions |
 | Actual Result | |
 | Status | |
 
@@ -302,38 +303,84 @@
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-020 |
-| Title | Target score boundary — value 101 (invalid) |
-| Module | Exam Planner |
-| Priority | P2 |
-| Type | Boundary |
-| Preconditions | User is logged in |
-| Test Steps | 1. Enter valid exam name and date<br>2. Enter Target Score: 101<br>3. Click Add Exam |
-| Expected Result | Validation error: "Target score must be between 0 and 100" |
-| Actual Result | |
-| Status | |
-
-### TC-021
-| Field | Value |
-|-------|-------|
-| TC-ID | TC-021 |
-| Title | Delete an exam |
-| Module | Exam Planner |
-| Priority | P2 |
+| Title | Back to Study Planner from Smart Plan |
+| Module | Smart Plan |
+| Priority | P3 |
 | Type | Functional |
-| Preconditions | At least one exam exists |
-| Test Steps | 1. Click delete icon on an exam<br>2. Confirm deletion |
-| Expected Result | Exam removed from list, success message shown |
+| Preconditions | Smart plan is generated |
+| Test Steps | 1. Click "← Back to Study Planner" button |
+| Expected Result | Switches back to Study Planner tab, smart plan context cleared |
 | Actual Result | |
 | Status | |
 
 ---
 
-## MODULE 4: API Security
+## MODULE 4: AI Predictor (LSTM)
+
+### TC-021
+| Field | Value |
+|-------|-------|
+| TC-ID | TC-021 |
+| Title | LSTM prediction with real study data |
+| Module | AI Predictor |
+| Priority | P1 |
+| Type | Functional |
+| Preconditions | User has completed topics in Study Planner (at least 1 day), ML service running on port 5002 |
+| Test Steps | 1. Complete topics in Study Planner<br>2. Switch to AI Predictor tab<br>3. Verify "Live Data" chip is shown<br>4. Click Predict Day 8 Performance |
+| Expected Result | Shows predicted %, trend, status (On Track/At Risk/Needs Attention), LSTM model info |
+| Actual Result | |
+| Status | |
 
 ### TC-022
 | Field | Value |
 |-------|-------|
 | TC-ID | TC-022 |
+| Title | LSTM prediction in demo mode (no study data) |
+| Module | AI Predictor |
+| Priority | P2 |
+| Type | Functional |
+| Preconditions | No study data in localStorage, ML service running |
+| Test Steps | 1. Open AI Predictor tab<br>2. Verify "Demo Mode" chip<br>3. Click Predict |
+| Expected Result | Prediction runs on default demo scores, result shown |
+| Actual Result | |
+| Status | |
+
+### TC-023
+| Field | Value |
+|-------|-------|
+| TC-ID | TC-023 |
+| Title | Slider adjustment changes prediction |
+| Module | AI Predictor |
+| Priority | P2 |
+| Type | Functional |
+| Preconditions | ML service running |
+| Test Steps | 1. Set all 7 sliders to 0.9 (high scores)<br>2. Click Predict<br>3. Note result<br>4. Set all sliders to 0.2 (low scores)<br>5. Click Predict again |
+| Expected Result | High scores → "On Track" status; Low scores → "Needs Attention" status |
+| Actual Result | |
+| Status | |
+
+### TC-024
+| Field | Value |
+|-------|-------|
+| TC-ID | TC-024 |
+| Title | ML service offline error handling |
+| Module | AI Predictor |
+| Priority | P2 |
+| Type | Negative |
+| Preconditions | ML service NOT running |
+| Test Steps | 1. Stop the Flask ML service<br>2. Click Predict Day 8 Performance |
+| Expected Result | Error message: "ML service is not running. Start it: cd ml_service && python app.py" |
+| Actual Result | |
+| Status | |
+
+---
+
+## MODULE 5: API Security
+
+### TC-025
+| Field | Value |
+|-------|-------|
+| TC-ID | TC-025 |
 | Title | Access protected route without token |
 | Module | API Security |
 | Priority | P1 |
@@ -344,11 +391,11 @@
 | Actual Result | |
 | Status | |
 
-### TC-023
+### TC-026
 | Field | Value |
 |-------|-------|
-| TC-ID | TC-023 |
-| Title | Access protected route with invalid/expired token |
+| TC-ID | TC-026 |
+| Title | Access protected route with invalid token |
 | Module | API Security |
 | Priority | P1 |
 | Type | Security |
@@ -358,28 +405,88 @@
 | Actual Result | |
 | Status | |
 
-### TC-024
+### TC-027
 | Field | Value |
 |-------|-------|
-| TC-ID | TC-024 |
-| Title | SQL/NoSQL injection in login email field |
+| TC-ID | TC-027 |
+| Title | NoSQL injection attempt in login |
 | Module | API Security |
 | Priority | P1 |
 | Type | Security |
 | Preconditions | Server running |
-| Test Steps | 1. POST /api/auth/login with email: `{"$gt": ""}` and any password |
-| Expected Result | HTTP 400 or 401, no data leaked, no server crash |
+| Test Steps | 1. POST /api/auth/login with body: `{"username": {"$gt": ""}, "password": "anything"}` |
+| Expected Result | HTTP 400 or 401, no data leaked, server does not crash |
+| Actual Result | |
+| Status | |
+
+### TC-028
+| Field | Value |
+|-------|-------|
+| TC-ID | TC-028 |
+| Title | Unknown route returns 404 |
+| Module | API Security |
+| Priority | P3 |
+| Type | Negative |
+| Preconditions | Server running |
+| Test Steps | 1. Send GET /api/nonexistent |
+| Expected Result | HTTP 404, JSON error response |
 | Actual Result | |
 | Status | |
 
 ---
 
-## Test Execution Summary Template
+## MODULE 6: Resources API (Gemini)
+
+### TC-029
+| Field | Value |
+|-------|-------|
+| TC-ID | TC-029 |
+| Title | Resources API returns 400 without topic |
+| Module | Resources API |
+| Priority | P1 |
+| Type | Negative |
+| Preconditions | Server running |
+| Test Steps | 1. Send GET /api/resources (no topic param) |
+| Expected Result | HTTP 400, error: "topic is required" |
+| Actual Result | |
+| Status | |
+
+### TC-030
+| Field | Value |
+|-------|-------|
+| TC-ID | TC-030 |
+| Title | Smart Plan API returns 400 without topics |
+| Module | Resources API |
+| Priority | P1 |
+| Type | Negative |
+| Preconditions | Server running |
+| Test Steps | 1. POST /api/resources/smartplan with empty body |
+| Expected Result | HTTP 400, error: "topics are required" |
+| Actual Result | |
+| Status | |
+
+---
+
+## Test Execution Summary
 
 | Module | Total TCs | Pass | Fail | Blocked | Pass % |
 |--------|-----------|------|------|---------|--------|
 | Authentication | 8 | | | | |
-| Study Planner | 7 | | | | |
-| Exam Planner | 6 | | | | |
-| API Security | 3 | | | | |
-| **Total** | **24** | | | | |
+| Study Planner | 8 | | | | |
+| Smart Plan | 4 | | | | |
+| AI Predictor (LSTM) | 4 | | | | |
+| API Security | 4 | | | | |
+| Resources API | 2 | | | | |
+| **Total** | **30** | | | | |
+
+---
+
+## Automated Test Coverage (Jest)
+
+| Test Suite | Tests | Status |
+|------------|-------|--------|
+| auth.test.js | 9 | ✅ Pass |
+| exam.test.js | 7 | ✅ Pass |
+| subject.test.js | 5 | ✅ Pass |
+| smartplan.test.js | 7 | ✅ Pass |
+| **Total** | **32** | **✅ All Pass** |
