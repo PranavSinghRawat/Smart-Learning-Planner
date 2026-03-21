@@ -319,6 +319,85 @@
       ]
     },
     {
+      "name": "Resources & Smart Plan (Gemini AI)",
+      "item": [
+        {
+          "name": "GET /api/resources – Missing Topic",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/resources" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400 – topic required', () => pm.response.to.have.status(400));",
+            "pm.test('Error field present', () => pm.expect(pm.response.json()).to.have.property('error'));"
+          ]}}]
+        },
+        {
+          "name": "GET /api/resources – With Topic",
+          "request": { "method": "GET", "url": "{{baseUrl}}/api/resources?topic=Arrays&subject=DSA" },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 or 500 (Gemini may be offline)', () => pm.expect([200, 500]).to.include(pm.response.code));",
+            "pm.test('Returns JSON', () => pm.expect(pm.response.headers.get('content-type')).to.include('json'));",
+            "if (pm.response.code === 200) {",
+            "  pm.test('Has steps array', () => pm.expect(pm.response.json()).to.have.property('steps'));",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "POST /api/resources/plan – Missing Fields",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/resources/plan",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"subject\": \"DSA\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400 – missing fields rejected', () => pm.response.to.have.status(400));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/resources/plan – Generate Study Plan",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/resources/plan",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"subject\": \"DSA\",\n  \"days\": 3,\n  \"hours\": 2,\n  \"level\": \"Beginner\"\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 or 500 (Gemini may be offline)', () => pm.expect([200, 500]).to.include(pm.response.code));",
+            "pm.test('Returns JSON', () => pm.expect(pm.response.headers.get('content-type')).to.include('json'));",
+            "if (pm.response.code === 200) {",
+            "  pm.test('Has plan array', () => pm.expect(pm.response.json()).to.have.property('plan'));",
+            "}"
+          ]}}]
+        },
+        {
+          "name": "POST /api/resources/smartplan – Missing Topics",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/resources/smartplan",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 400 – topics required', () => pm.response.to.have.status(400));",
+            "pm.test('Error field present', () => pm.expect(pm.response.json()).to.have.property('error'));"
+          ]}}]
+        },
+        {
+          "name": "POST /api/resources/smartplan – Generate Smart Plan",
+          "request": {
+            "method": "POST", "url": "{{baseUrl}}/api/resources/smartplan",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"day\": 1,\n  \"subject\": \"DSA\",\n  \"hours\": 2,\n  \"topics\": [\n    { \"name\": \"Arrays - Two Pointer\", \"hours\": 1 },\n    { \"name\": \"Binary Search\", \"hours\": 1 }\n  ]\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "exec": [
+            "pm.test('Status 200 or 500 (Gemini may be offline)', () => pm.expect([200, 500]).to.include(pm.response.code));",
+            "pm.test('Returns JSON', () => pm.expect(pm.response.headers.get('content-type')).to.include('json'));",
+            "if (pm.response.code === 200) {",
+            "  pm.test('Has overview', () => pm.expect(pm.response.json()).to.have.property('overview'));",
+            "  pm.test('Has schedule', () => pm.expect(pm.response.json()).to.have.property('schedule'));",
+            "  pm.test('Has tips', () => pm.expect(pm.response.json()).to.have.property('tips'));",
+            "}"
+          ]}}]
+        }
+      ]
+    },
+    {
       "name": "Cleanup",
       "item": [
         {

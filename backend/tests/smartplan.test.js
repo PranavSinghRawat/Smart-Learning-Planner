@@ -2,7 +2,6 @@ const request = require('supertest');
 const app = require('../server');
 
 let token;
-let examId;
 
 const setup = async () => {
   await request(app).post('/api/auth/register').send({
@@ -16,55 +15,66 @@ const setup = async () => {
     password: 'password123',
   });
   token = loginRes.body.token;
-
-  const examRes = await request(app)
-    .post('/api/exams')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ examName: 'Physics Final', examDate: '2026-12-01', targetScore: 80 });
-  examId = examRes.body.exam._id;
-
-  await request(app)
-    .post('/api/subjects')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ examId, subjectName: 'Mechanics', difficulty: 'hard', isWeak: true });
-
-  await request(app)
-    .post('/api/subjects')
-    .set('Authorization', `Bearer ${token}`)
-    .send({ examId, subjectName: 'Optics', difficulty: 'medium', isWeak: false });
 };
 
-describe('SmartPlan API', () => {
+describe('Resources API (Gemini)', () => {
   beforeEach(async () => {
     await setup();
   });
 
-  describe('POST /api/smartplan/generate', () => {
-    it('should return 401 without token', async () => {
-      const res = await request(app).post('/api/smartplan/generate').send({ examId });
-      expect(res.statusCode).toBe(401);
+  describe('GET /api/resources', () => {
+    it('should return 400 if topic is missing', async () => {
+      const res = await request(app).get('/api/resources');
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toHaveProperty('error');
     });
 
-    it('should attempt to generate a smart plan (200 if ML up, else handled error)', async () => {
-      const res = await request(app)
-        .post('/api/smartplan/generate')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ examId });
-      // ML service may not be running in test env — accept 200 or server-handled errors
-      expect([200, 400, 404, 500, 503]).toContain(res.statusCode);
-      // Server must not crash — always returns JSON
+    it('should attempt to get resources for a topic (200 or 500 if Gemini offline)', async () => {
+      const res = await request(app).get('/api/resources?topic=Arrays');
+      expect([200, 500]).toContain(res.statusCode);
       expect(res.headers['content-type']).toMatch(/json/);
     });
+  });
 
-    it('should return 200 with empty sessions when no exam data provided', async () => {
-      // Controller returns 200 with empty sessions when no candidates exist
-      const res = await request(app)
-        .post('/api/smartplan/generate')
-        .set('Authorization', `Bearer ${token}`)
-        .send({});
-      expect(res.statusCode).toBe(200);
-      expect(res.body).toHaveProperty('sessions');
-      expect(Array.isArray(res.body.sessions)).toBe(true);
+  describe('POST /api/resources/plan', () => {
+    it('should return 400 if required fields are missing', async () => {
+      const res = await request(app).post('/api/resources/plan').send({ subject: 'DSA' });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('should attempt to generate a study plan (200 or 500 if Gemini offline)', async () => {
+      const res = await request(app).post('/api/resources/plan').send({
+        subject: 'DSA', days: 3, hours: 2, level: 'Beginner',
+      });
+      expect([200, 500]).toContain(res.statusCode);
+      expect(res.headers['content-type']).toMatch(/json/);
+    });
+  });
+
+  describe('POST /api/resources/smartplan', () => {
+    it('should return 400 if topics are missing', async () => {
+      const res = await request(app).post('/api/resources/smartplan').send({});
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toHaveProperty('error');
+    });
+
+    it('should return 400 if topics array is empty', async () => {
+      const res = await request(app).post('/api/resources/smartplan').send({ topics: [] });
+      expect(res.statusCode).toBe(400);
+    });
+
+    it('should attempt to generate smart plan (200 or 500 if Gemini offline)', async () => {
+      const res = await request(app).post('/api/resources/smartplan').send({
+        day: 1,
+        subject: 'DSA',
+        hours: 2,
+        topics: [
+          { name: 'Arrays - Two Pointer', hours: 1 },
+          { name: 'Binary Search', hours: 1 },
+        ],
+      });
+      expect([200, 500]).toContain(res.statusCode);
+      expect(res.headers['content-type']).toMatch(/json/);
     });
   });
 });
