@@ -217,11 +217,29 @@ function App() {
     setLoading(false);
   };
 
+  // Save today's study score to localStorage for LSTM predictor
+  const saveDailyScore = (updatedPlan) => {
+    const total = updatedPlan.reduce((s, d) => s + d.topics.length, 0);
+    const done  = updatedPlan.reduce((s, d) => s + d.topics.filter(t => t.completed).length, 0);
+    const score = total === 0 ? 0 : parseFloat((done / total).toFixed(2));
+    const key = `dailyScores_${currentUserId}`;
+    const today = new Date().toISOString().split('T')[0];
+    const existing = JSON.parse(localStorage.getItem(key) || '[]');
+    // Update today's entry or add new one
+    const idx = existing.findIndex(e => e.date === today);
+    if (idx >= 0) existing[idx].score = score;
+    else existing.push({ date: today, score });
+    // Keep only last 30 days
+    const sorted = existing.sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
+    localStorage.setItem(key, JSON.stringify(sorted));
+  };
+
   const toggleSubtopic = (dayIndex, subIndex) => {
     const updated = plan.map((d, di) =>
       di !== dayIndex ? d : { ...d, topics: d.topics.map((t, ti) => ti !== subIndex ? t : { ...t, completed: !t.completed }) }
     );
     setPlan(updated);
+    saveDailyScore(updated);
     const action = updated[dayIndex].topics[subIndex].completed ? 'completed' : 'uncompleted';
     showSnackbar(`✅ Topic ${action}!`);
   };
@@ -293,7 +311,7 @@ function App() {
         {activeTab === 1 && <ExamPlanner token={token} />}
         {activeTab === 2 && <CareerGoals userId={currentUserId} />}
         {activeTab === 3 && <SmartPlan token={token} userId={currentUserId} />}
-        {activeTab === 4 && <PerformancePredictor />}
+        {activeTab === 4 && <PerformancePredictor userId={currentUserId} />}
 
         {/* STUDY PLANNER (tab 0) */}
         {activeTab === 0 && (<>

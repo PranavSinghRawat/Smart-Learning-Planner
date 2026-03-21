@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box, Card, CardContent, Typography, Button, Slider,
   Alert, Chip, LinearProgress, Grid,
@@ -18,11 +18,31 @@ const STATUS_CONFIG = {
 
 const ML_URL = import.meta.env.VITE_ML_URL || "http://localhost:5002";
 
-export default function PerformancePredictor() {
+export default function PerformancePredictor({ userId }) {
   const [scores, setScores] = useState([0.6, 0.62, 0.58, 0.65, 0.60, 0.63, 0.67]);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [usingRealData, setUsingRealData] = useState(false);
+  const [realDates, setRealDates] = useState([]);
+
+  // Load real daily scores from localStorage on mount
+  useEffect(() => {
+    if (!userId) return;
+    const key = `dailyScores_${userId}`;
+    const saved = JSON.parse(localStorage.getItem(key) || '[]');
+    if (saved.length >= 2) {
+      // Use last 7 days, pad with 0.5 if less than 7
+      const last7 = saved.slice(-7);
+      const padded = Array(7).fill(0.5);
+      last7.forEach((entry, i) => {
+        padded[7 - last7.length + i] = entry.score;
+      });
+      setScores(padded);
+      setRealDates(last7.map(e => e.date));
+      setUsingRealData(true);
+    }
+  }, [userId]);
 
   const predict = async () => {
     setLoading(true);
@@ -60,17 +80,19 @@ export default function PerformancePredictor() {
         </Box>
       </Box>
 
-      <Alert severity="info" sx={{ mb: 3, borderRadius: 2 }}>
-        <strong>How it works:</strong> Enter your study performance scores for the last 7 days (0 = no study, 1 = perfect).
-        The LSTM model analyzes the sequence pattern and predicts your next day performance.
-        LSTM is used instead of vanilla RNN to solve the <strong>vanishing gradient problem</strong> using
-        forget, input, and output gates.
+      <Alert severity={usingRealData ? "success" : "info"} sx={{ mb: 3, borderRadius: 2 }}>
+        {usingRealData
+          ? <><strong>✅ Using your real study data</strong> — scores are automatically pulled from your Study Planner activity. The LSTM analyzes your actual performance pattern.</>
+          : <><strong>How it works:</strong> Complete topics in the Study Planner daily — your scores are saved automatically. The LSTM model then predicts your next day performance. Currently showing <strong>demo data</strong> (no study history yet).</>
+        }
+        {" "}LSTM solves the <strong>vanishing gradient problem</strong> of vanilla RNNs using forget, input, and output gates.
       </Alert>
 
       <Card sx={{ mb: 3, borderRadius: 3, border: "1px solid #E2E8F0" }}>
         <CardContent>
           <Typography variant="h6" sx={{ fontWeight: 600, mb: 3, color: C.primary }}>
             📅 Last 7 Days — Study Performance Scores
+            {usingRealData && <Chip label="Live Data" size="small" sx={{ ml: 1, background: "#D1FAE5", color: "#065F46", fontWeight: 700 }} />}
           </Typography>
           <Grid container spacing={3}>
             {scores.map((score, i) => (
