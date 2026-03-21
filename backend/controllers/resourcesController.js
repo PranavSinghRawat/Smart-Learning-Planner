@@ -57,4 +57,56 @@ Rules:
   }
 };
 
-module.exports = { getResources };
+const generateStudyPlan = async (req, res) => {
+  const { subject, days, hours, level } = req.body;
+
+  if (!subject || !days || !hours || !level) {
+    return res.status(400).json({ error: 'subject, days, hours, and level are required' });
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+
+    const prompt = `You are an expert study planner. Create a ${days}-day study plan for "${subject}" at ${level} level with ${hours} hours per day.
+
+Return ONLY raw JSON (no markdown, no explanation) in this exact format:
+{
+  "subject": "${subject}",
+  "level": "${level}",
+  "totalDays": ${days},
+  "hoursPerDay": ${hours},
+  "plan": [
+    {
+      "day": 1,
+      "topics": [
+        {
+          "name": "specific topic name",
+          "hours": 1.0,
+          "completed": false
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+- Each day must have topics that fit within ${hours} hours total
+- Topics must be in logical learning order (fundamentals first)
+- Topic names must be specific and actionable (e.g. "Arrays - Two Pointer Technique" not just "Arrays")
+- Distribute topics evenly across ${days} days
+- Level is ${level} so adjust complexity accordingly
+- Return exactly ${days} day objects`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text().trim();
+    const cleaned = text.replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim();
+    const data = JSON.parse(cleaned);
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Gemini study plan error:', error.message);
+    res.status(500).json({ error: 'Failed to generate study plan' });
+  }
+};
+
+module.exports = { getResources, generateStudyPlan };
