@@ -1,9 +1,15 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
 dotenv.config();
+
+// Guard critical env vars at startup
+if (!process.env.JWT_SECRET) throw new Error('FATAL: JWT_SECRET is not set in .env');
+if (!process.env.GROQ_API_KEY) console.warn('WARNING: GROQ_API_KEY is not set — AI features will fail');
 
 const app = express();
 
@@ -23,7 +29,18 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-app.use(express.json());
+app.use(helmet({ contentSecurityPolicy: false })); // CSP off — API only, no HTML served
+app.use(express.json({ limit: '10kb' })); // Reject oversized payloads
+
+// Rate limiting — protect AI endpoints from abuse
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20,
+  message: { error: 'Too many requests, please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/resources', aiLimiter);
 
 // ── Connect to MongoDB Atlas ──────────────────────────────────────────────────
 if (process.env.NODE_ENV !== 'test') {

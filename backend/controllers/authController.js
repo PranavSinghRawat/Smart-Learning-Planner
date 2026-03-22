@@ -12,6 +12,9 @@ const register = async (req, res) => {
   if (!username || !email || !password) {
     return res.status(400).json({ error: 'Missing fields' });
   }
+  if (password.length > 128) {
+    return res.status(400).json({ error: 'Password too long' });
+  }
 
   try {
     if (await User.findOne({ username })) {

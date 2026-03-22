@@ -10,12 +10,16 @@ async function askGroq(prompt) {
     temperature: 0.7,
   });
   const text = res.choices[0]?.message?.content?.trim() || '';
+  // Strip markdown code fences if present
   const cleaned = text
     .replace(/^```json\s*/i, '')
     .replace(/^```\s*/i, '')
     .replace(/\s*```$/i, '')
     .trim();
-  return JSON.parse(cleaned);
+  // Find the first { or [ to handle any leading text the LLM adds
+  const jsonStart = cleaned.search(/[{[]/);
+  if (jsonStart === -1) throw new Error('LLM returned no JSON object');
+  return JSON.parse(cleaned.slice(jsonStart));
 }
 
 const getResources = async (req, res) => {
@@ -131,7 +135,7 @@ Rules:
     res.status(200).json(data);
   } catch (error) {
     console.error('Groq smart plan error:', error.message);
-    res.status(500).json({ error: 'Failed to generate smart plan: ' + error.message });
+    res.status(500).json({ error: 'Failed to generate smart plan' });
   }
 };
 
