@@ -6,7 +6,7 @@ import {
   DialogTitle, DialogContent, DialogActions, Tabs, Tab,
   List, ListItem, ListItemText, ListItemIcon, Accordion,
   AccordionSummary, AccordionDetails, Divider,
-  InputAdornment,
+  InputAdornment, Skeleton, Fade,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import {
@@ -20,6 +20,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import StopIcon from "@mui/icons-material/Stop";
 import Auth from "./pages/Auth";
+import Landing from "./pages/Landing";
 import SmartPlan from "./pages/SmartPlan";
 import PerformancePredictor from "./pages/PerformancePredictor";
 import ResourcePanel from "./components/ResourcePanel";
@@ -90,6 +91,7 @@ function App() {
   const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(false);
   const [smartPlanContext, setSmartPlanContext] = useState(null);
+  const [showLanding, setShowLanding] = useState(true);
 
   const getCustomSubjectsKey = (uid) => `customSubjects_${uid}`;
   const getStudyHistoryKey   = (uid) => `studyHistory_${uid}`;
@@ -102,6 +104,7 @@ function App() {
       setCurrentUserId(userData.id);
       setCurrentUsername(userData.username || '');
       setIsAuthenticated(true);
+      setShowLanding(false);
       const cs = localStorage.getItem(getCustomSubjectsKey(userData.id));
       if (cs) setCustomSubjects(JSON.parse(cs));
       const sh = localStorage.getItem(getStudyHistoryKey(userData.id));
@@ -263,6 +266,8 @@ function App() {
   const totalProgress = pieData[0].value + pieData[1].value > 0
     ? Math.round((pieData[0].value / (pieData[0].value + pieData[1].value)) * 100) : 0;
 
+  if (showLanding && !isAuthenticated) return <Landing onGetStarted={() => setShowLanding(false)} />;
+
   if (!isAuthenticated) return <Auth onLoginSuccess={() => {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     setCurrentUserId(user.id);
@@ -307,8 +312,8 @@ function App() {
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {/* NEW PAGES */}
-        {activeTab === 1 && <SmartPlan token={token} userId={currentUserId} dayContext={smartPlanContext} onClearDay={() => { setSmartPlanContext(null); setActiveTab(0); }} />}
-        {activeTab === 2 && <PerformancePredictor userId={currentUserId} token={token} />}
+        {activeTab === 1 && <Fade in={activeTab === 1} timeout={300}><Box><SmartPlan token={token} userId={currentUserId} dayContext={smartPlanContext} onClearDay={() => { setSmartPlanContext(null); setActiveTab(0); }} /></Box></Fade>}
+        {activeTab === 2 && <Fade in={activeTab === 2} timeout={300}><Box><PerformancePredictor userId={currentUserId} token={token} /></Box></Fade>}
 
         {/* STUDY PLANNER (tab 0) */}
         {activeTab === 0 && (<>
@@ -600,7 +605,26 @@ function App() {
           </Box>
         )}
 
-        {plan.length === 0 && (
+        {plan.length === 0 && loading && (
+          <Box sx={{ mt: 2 }}>
+            {[1,2,3].map(i => (
+              <Card key={i} sx={{ mb: 2, borderRadius: 3 }}>
+                <CardContent>
+                  <Skeleton variant="text" width="30%" height={32} sx={{ mb: 1 }} />
+                  <Skeleton variant="rectangular" height={8} sx={{ borderRadius: 4, mb: 2 }} />
+                  {[1,2,3].map(j => (
+                    <Box key={j} sx={{ display: "flex", gap: 2, mb: 1.5, alignItems: "center" }}>
+                      <Skeleton variant="circular" width={24} height={24} />
+                      <Skeleton variant="text" width="70%" />
+                    </Box>
+                  ))}
+                </CardContent>
+              </Card>
+            ))}
+          </Box>
+        )}
+
+        {plan.length === 0 && !loading && (
           <Paper elevation={0} sx={{ p: 8, textAlign: "center", borderRadius: 3, border: "2px dashed #CBD5E1" }}>
             <Typography variant="h5" sx={{ color: "#64748B", fontWeight: 600, mb: 1 }}>📚 No Plan Generated Yet</Typography>
             <Typography variant="body2" color="textSecondary">Choose a subject and click "Generate Plan" to start learning!</Typography>
