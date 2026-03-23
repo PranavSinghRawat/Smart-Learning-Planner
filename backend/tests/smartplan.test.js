@@ -17,7 +17,7 @@ const setup = async () => {
   token = loginRes.body.token;
 };
 
-describe('Resources API (Gemini)', () => {
+describe('Resources API (Groq AI)', () => {
   beforeEach(async () => {
     await setup();
   });
@@ -29,7 +29,7 @@ describe('Resources API (Gemini)', () => {
       expect(res.body).toHaveProperty('error');
     });
 
-    it('should attempt to get resources for a topic (200 or 500 if Gemini offline)', async () => {
+    it('should attempt to get resources for a topic (200 or 500 if Groq offline)', async () => {
       const res = await request(app).get('/api/resources?topic=Arrays');
       expect([200, 500]).toContain(res.statusCode);
       expect(res.headers['content-type']).toMatch(/json/);
@@ -42,7 +42,7 @@ describe('Resources API (Gemini)', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('should attempt to generate a study plan (200 or 500 if Gemini offline)', async () => {
+    it('should attempt to generate a study plan (200 or 500 if Groq offline)', async () => {
       const res = await request(app).post('/api/resources/plan').send({
         subject: 'DSA', days: 3, hours: 2, level: 'Beginner',
       });
@@ -63,7 +63,7 @@ describe('Resources API (Gemini)', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('should attempt to generate smart plan (200 or 500 if Gemini offline)', async () => {
+    it('should attempt to generate smart plan (200 or 500 if Groq offline)', async () => {
       const res = await request(app).post('/api/resources/smartplan').send({
         day: 1,
         subject: 'DSA',

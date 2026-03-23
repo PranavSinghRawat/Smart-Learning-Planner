@@ -1,8 +1,7 @@
 # Test Plan — Smart Learning Planner
 **Document ID:** SLP-TP-001  
-**Version:** 1.0  
-**Date:** 2026-03-18  
-**Prepared By:** QA Team  
+**Version:** 2.0  
+**Date:** 2026-03-23  
 **Standard Reference:** IEEE 829
 
 ---
@@ -10,34 +9,35 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-This test plan describes the testing strategy, scope, resources, schedule, and deliverables for the Smart Learning Planner web application. It is prepared in accordance with IEEE 829 (Standard for Software Test Documentation).
+This test plan describes the testing strategy, scope, resources, schedule, and deliverables for the Smart Learning Planner web application, prepared in accordance with IEEE 829.
 
 ### 1.2 Project Overview
-Smart Learning Planner is a full-stack web application that allows users to:
-- Register and authenticate securely
-- Generate personalized day-wise study plans for any subject
-- Plan and track upcoming exams
-- Set career goals
-- Receive AI/ML-powered smart study recommendations
+Smart Learning Planner is a full-stack AI-powered study platform that allows users to:
+- Register and authenticate securely (JWT)
+- Generate personalized day-wise study plans for any subject via Groq LLaMA 3.3
+- Get AI-generated hour-by-hour daily strategies (Smart Plan)
+- Predict Day 8 study performance using an LSTM deep learning model
+- Track progress with real-time charts and a study timer
 
 **Tech Stack:**
-- Frontend: React + Vite + Material UI
-- Backend: Node.js + Express.js
-- Database: MongoDB (Atlas)
-- ML Service: Python Flask + scikit-learn
-- Auth: JWT (JSON Web Tokens)
+- Frontend: React + Vite + Material UI, deployed on Vercel
+- Backend: Node.js + Express.js + MongoDB Atlas, deployed on Render
+- ML Service: Python Flask + scikit-learn (MLP) + custom LSTM predictor
+- AI: Groq API with LLaMA 3.3 70B
+- Auth: JWT (JSON Web Tokens) + bcrypt
 
 ### 1.3 Scope
 **In Scope:**
-- Backend REST API testing (Auth, Exams, Subjects, SmartPlan)
-- Frontend functional testing (Login, Registration, Study Planner, Exam Planner)
+- Backend REST API testing (Auth, Exams, Subjects, Resources/SmartPlan)
+- Frontend functional testing (Landing, Auth, Study Planner, Smart Plan, AI Predictor)
 - Performance testing on critical API endpoints
 - Security testing on authentication and input handling
-- Manual test case execution
+- Manual test case execution (24 TCs)
+- Automated Jest tests (28 TCs)
 
 **Out of Scope:**
 - Mobile application testing
-- Third-party service testing (MongoDB Atlas infrastructure)
+- Third-party infrastructure testing (MongoDB Atlas, Groq API, Vercel, Render)
 - Load testing beyond 100 concurrent users
 
 ---
@@ -53,15 +53,20 @@ Smart Learning Planner is a full-stack web application that allows users to:
 ---
 
 ## 3. Test Items
-| Item | Version | Description |
-|------|---------|-------------|
-| Auth API | 1.0 | POST /api/auth/register, POST /api/auth/login |
-| Exams API | 1.0 | GET/POST/DELETE /api/exams |
-| Subjects API | 1.0 | GET/POST /api/subjects |
-| SmartPlan API | 1.0 | POST /api/smartplan/generate |
-| Study Planner UI | 1.0 | Subject search, plan generation, topic completion |
-| Exam Planner UI | 1.0 | Exam creation, listing |
-| Auth UI | 1.0 | Login and registration forms |
+
+| Item | Route | Description |
+|------|-------|-------------|
+| Auth API | POST /api/auth/register, POST /api/auth/login | Registration and login |
+| Exams API | GET/POST/DELETE /api/exams | Exam CRUD |
+| Subjects API | GET/POST /api/subjects | Subject CRUD |
+| Resources API | GET /api/resources | Groq topic resources |
+| Study Plan API | POST /api/resources/plan | Groq study plan generation |
+| Smart Plan API | POST /api/resources/smartplan | Groq hour-by-hour schedule |
+| LSTM Predictor | POST /predict (ML service :5002) | Day 8 performance prediction |
+| Study Planner UI | — | Subject search, plan generation, topic completion, timer |
+| Smart Plan UI | — | Day context, schedule display, back navigation |
+| AI Predictor UI | — | Sliders, prediction result, data source detection |
+| Auth UI | — | Login and registration forms |
 
 ---
 
@@ -70,108 +75,84 @@ Smart Learning Planner is a full-stack web application that allows users to:
 ### 4.1 Testing Levels
 | Level | Description | Tools |
 |-------|-------------|-------|
-| Unit Testing | Individual functions and API endpoints | Jest + Supertest |
-| Integration Testing | API + Database interaction | Jest + Supertest + MongoDB Memory Server |
+| Unit Testing | Individual API endpoints | Jest + Supertest |
+| Integration Testing | API + Database interaction | Jest + MongoDB Memory Server |
 | System Testing | End-to-end user flows | Selenium WebDriver |
 | Performance Testing | API response time under load | Apache JMeter |
-| Security Testing | Auth bypass, injection, XSS | OWASP ZAP |
+| Security Testing | Auth bypass, injection | Manual + OWASP ZAP |
 
 ### 4.2 Testing Types
-- **Functional Testing** — verify features work as specified
-- **Boundary Value Analysis** — test edge values (empty fields, max lengths, invalid dates)
-- **Negative Testing** — invalid inputs, unauthorized access, missing tokens
-- **Regression Testing** — re-run after each code change
-- **Performance Testing** — response time, throughput, error rate under load
+- Functional, Boundary Value Analysis, Negative, Regression, Performance, Security
 
 ### 4.3 Testing Techniques
-- **Black-box testing** for API and UI (no knowledge of internals)
-- **White-box testing** for unit tests (code-level)
-- **Equivalence Partitioning** for input validation tests
-- **Boundary Value Analysis** for numeric fields (targetScore 0–100, days, hours)
+- Black-box testing for API and UI
+- White-box testing for unit tests
+- Equivalence Partitioning and Boundary Value Analysis for input validation
 
 ---
 
 ## 5. Test Environment
 
-### 5.1 Hardware
-- Development Machine: MacOS, 8GB RAM minimum
-- Test runs locally and against localhost server
+| Tool | Purpose |
+|------|---------|
+| Jest + Supertest | Unit & Integration testing |
+| MongoDB Memory Server | In-memory DB for tests |
+| Postman / Newman | API testing |
+| Apache JMeter | Performance testing |
+| OWASP ZAP | Security testing |
+| Selenium WebDriver | UI automation |
 
-### 5.2 Software
-| Tool | Purpose | Cost |
-|------|---------|------|
-| Jest + Supertest | Unit & Integration testing | Free (Open Source) |
-| MongoDB Memory Server | In-memory DB for tests | Free (Open Source) |
-| Postman | API testing & collection | Free |
-| Apache JMeter | Performance testing | Free (Open Source) |
-| OWASP ZAP | Security testing | Free (Open Source) |
-| Selenium WebDriver | UI automation | Free (Open Source) |
-| Jenkins | CI/CD pipeline | Free (Open Source) |
-| JIRA | Bug tracking | Free (up to 10 users) |
-
-### 5.3 Test Data
-- Test users created fresh per test run using MongoDB Memory Server
-- Postman environment variables store tokens between requests
-- JMeter uses CSV data files for parameterized load tests
+**Ports:** Backend :5001 · Frontend :5173 · ML Service :5002
 
 ---
 
 ## 6. Entry and Exit Criteria
 
-### 6.1 Entry Criteria
+### Entry Criteria
 - Backend server starts without errors
-- Database connection is established
-- All dependencies installed (`npm install`)
-- Test environment variables configured
+- MongoDB connection established
+- All dependencies installed
+- GROQ_API_KEY set in backend/.env
 
-### 6.2 Exit Criteria
-- All critical (P1) test cases pass
+### Exit Criteria
+- All P1 test cases pass
 - No open P1 or P2 defects
-- Code coverage ≥ 70% on backend
-- Performance: 95th percentile response time < 500ms under 50 concurrent users
-- Security: No high-severity vulnerabilities from OWASP ZAP scan
+- Backend code coverage ≥ 70%
+- 95th percentile response time < 500ms under 50 concurrent users
 
 ---
 
 ## 7. Test Deliverables
-| Deliverable | Description |
-|-------------|-------------|
-| TEST_PLAN.md | This document |
-| MANUAL_TEST_CASES.md | Manual test case specifications |
-| Postman Collection | API test collection (JSON) |
-| Jest Test Files | Automated unit/integration tests |
-| JMeter Test Plan | Performance test plan (.jmx) |
-| Bug Report | Defects logged in JIRA format |
-| Test Summary Report | Final results after execution |
+| Deliverable | File |
+|-------------|------|
+| Test Plan | TEST_PLAN.md |
+| Manual Test Cases (24 TCs) | MANUAL_TEST_CASES.md |
+| Postman Collection | postman/SLP_API_Tests.postman_collection.json |
+| Jest Test Files (28 TCs) | backend/tests/ |
+| JMeter Test Plan | jmeter/SLP_Performance_Test.jmx |
+| Selenium UI Tests | selenium/ui_test.js |
+| Bug Report | BUG_REPORT.md |
+| Test Summary Report | TEST_SUMMARY_REPORT.md |
 
 ---
 
 ## 8. Risks and Mitigations
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| MongoDB Atlas unavailable | Low | High | Use MongoDB Memory Server for tests |
-| ML service (Flask) not running | Medium | Medium | Mock ML responses in unit tests |
-| JWT secret not set | Low | High | Validate .env before test run |
-| Flaky async tests | Medium | Low | Use --runInBand, set 30s timeout |
+| Risk | Mitigation |
+|------|------------|
+| MongoDB Atlas unavailable | Use MongoDB Memory Server for tests |
+| Groq API rate limit | Tests accept 200 or 500 for AI endpoints |
+| ML service not running | Error message guides user to start it |
+| JWT secret not set | Server guards at startup and exits |
 
 ---
 
 ## 9. Schedule
 | Phase | Activity | Duration |
 |-------|----------|----------|
-| Phase 1 | Test planning & case design | 1 day |
-| Phase 2 | Manual test execution | 1 day |
-| Phase 3 | Automated test execution (Jest) | 1 day |
-| Phase 4 | API testing (Postman) | 1 day |
-| Phase 5 | Performance testing (JMeter) | 1 day |
-| Phase 6 | Security testing (OWASP ZAP) | 1 day |
-| Phase 7 | Bug reporting & test summary | 1 day |
-
----
-
-## 10. Approvals
-| Role | Name | Signature | Date |
-|------|------|-----------|------|
-| Test Lead | | | |
-| Developer | | | |
-| Project Manager | | | |
+| 1 | Test planning & case design | 1 day |
+| 2 | Manual test execution | 1 day |
+| 3 | Automated Jest tests | 1 day |
+| 4 | API testing (Postman) | 1 day |
+| 5 | Performance testing (JMeter) | 1 day |
+| 6 | Security testing | 1 day |
+| 7 | Bug reporting & summary | 1 day |

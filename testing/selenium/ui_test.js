@@ -7,17 +7,15 @@
  *   Backend running on :5001, Frontend on :5173
  */
 
-const { Builder, By, until, Key } = require("selenium-webdriver");
+const { Builder, By, until } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 
-// ── Config ────────────────────────────────────────────────────────────────────
 const BASE_URL = "http://localhost:5173";
+const TEST_USERNAME = `selenium_${Date.now()}`;
 const TEST_EMAIL = `selenium_${Date.now()}@slp.com`;
 const TEST_PASSWORD = "password123";
-const TEST_NAME = "Selenium Tester";
 const TIMEOUT = 10000;
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 let passed = 0;
 let failed = 0;
 
@@ -32,11 +30,9 @@ async function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-// ── Test Runner ───────────────────────────────────────────────────────────────
 async function runTests() {
   const options = new chrome.Options();
-  // Uncomment next line to run headless (no browser window):
-  // options.addArguments("--headless=new");
+  // options.addArguments("--headless=new"); // uncomment for headless
   options.addArguments("--window-size=1280,800");
 
   const driver = await new Builder()
@@ -45,158 +41,127 @@ async function runTests() {
     .build();
 
   try {
-    // ── TC-UI-001: Page loads and shows login form ──────────────────────────
+    // TC-UI-001: Landing page loads
     await driver.get(BASE_URL);
-    await driver.wait(until.titleContains("Smart"), TIMEOUT);
-    const loginTab = await driver.findElement(By.xpath("//*[contains(text(),'Login')]"));
-    log("PASS", "TC-UI-001: Page loads and shows login form");
-
-    // ── TC-UI-002: Register a new user ─────────────────────────────────────
+    await sleep(1000);
     try {
-      const registerTab = await driver.findElement(
-        By.xpath("//*[contains(text(),'Register') or contains(text(),'Sign Up')]")
-      );
+      await driver.findElement(By.xpath("//*[contains(text(),'Smart Learning Planner')]"));
+      log("PASS", "TC-UI-001: Landing page loads");
+    } catch (e) {
+      log("FAIL", "TC-UI-001: Landing page loads", e.message);
+    }
+
+    // TC-UI-002: Get Started navigates to Auth page
+    try {
+      const btn = await driver.findElement(By.xpath("//button[contains(text(),'Get Started')]"));
+      await btn.click();
+      await sleep(800);
+      await driver.findElement(By.xpath("//*[contains(text(),'Login') or contains(text(),'Register')]"));
+      log("PASS", "TC-UI-002: Get Started navigates to Auth page");
+    } catch (e) {
+      log("FAIL", "TC-UI-002: Get Started button", e.message);
+    }
+
+    // TC-UI-003: Register a new user
+    try {
+      const registerTab = await driver.findElement(By.xpath("//*[contains(text(),'Register')]"));
       await registerTab.click();
       await sleep(500);
 
-      const nameField = await driver.findElement(By.css("input[name='name'], input[placeholder*='name' i], input[label*='name' i]"));
-      await nameField.sendKeys(TEST_NAME);
+      await driver.findElement(By.css("input[placeholder*='username' i]")).sendKeys(TEST_USERNAME);
+      await driver.findElement(By.css("input[type='email']")).sendKeys(TEST_EMAIL);
 
-      const emailField = await driver.findElement(By.css("input[type='email'], input[name='email']"));
-      await emailField.sendKeys(TEST_EMAIL);
+      const passFields = await driver.findElements(By.css("input[type='password']"));
+      await passFields[0].sendKeys(TEST_PASSWORD);
+      await passFields[1].sendKeys(TEST_PASSWORD);
 
-      const passField = await driver.findElement(By.css("input[type='password']"));
-      await passField.sendKeys(TEST_PASSWORD);
+      await driver.findElement(By.xpath("//button[contains(text(),'Create Account')]")).click();
+      await sleep(2000);
 
-      const submitBtn = await driver.findElement(
-        By.xpath("//button[contains(text(),'Register') or contains(text(),'Sign Up')]")
-      );
-      await submitBtn.click();
-      await sleep(1500);
-
-      // After register, should be on main app
-      const navbar = await driver.findElement(By.xpath("//*[contains(text(),'Smart Learning Planner')]"));
-      log("PASS", "TC-UI-002: User registration successful");
+      await driver.findElement(By.xpath("//*[contains(text(),'Study Planner')]"));
+      log("PASS", "TC-UI-003: User registration successful");
     } catch (e) {
-      log("FAIL", "TC-UI-002: User registration", e.message);
+      log("FAIL", "TC-UI-003: User registration", e.message);
     }
 
-    // ── TC-UI-003: Study Planner tab is visible ─────────────────────────────
+    // TC-UI-004: Study Planner tab is active by default
     try {
-      const studyTab = await driver.findElement(
-        By.xpath("//*[contains(text(),'Study Planner')]")
-      );
-      await studyTab.click();
-      await sleep(500);
-      log("PASS", "TC-UI-003: Study Planner tab visible and clickable");
+      await driver.findElement(By.css("input[placeholder*='learn' i]"));
+      log("PASS", "TC-UI-004: Study Planner tab active after login");
     } catch (e) {
-      log("FAIL", "TC-UI-003: Study Planner tab", e.message);
+      log("FAIL", "TC-UI-004: Study Planner tab", e.message);
     }
 
-    // ── TC-UI-004: Generate a study plan for DSA ────────────────────────────
+    // TC-UI-005: Generate a study plan
     try {
-      const subjectInput = await driver.findElement(
-        By.css("input[placeholder*='learn' i], input[placeholder*='subject' i]")
-      );
+      const subjectInput = await driver.findElement(By.css("input[placeholder*='learn' i]"));
       await subjectInput.clear();
       await subjectInput.sendKeys("DSA");
 
-      const generateBtn = await driver.findElement(
-        By.xpath("//button[contains(text(),'Generate')]")
-      );
-      await generateBtn.click();
-      await sleep(1500);
+      await driver.findElement(By.xpath("//button[contains(text(),'Generate')]")).click();
+      await sleep(3000);
 
-      // Day 1 card should appear
-      const dayCard = await driver.findElement(
-        By.xpath("//*[contains(text(),'Day 1')]")
-      );
-      log("PASS", "TC-UI-004: Study plan generated for DSA");
+      await driver.findElement(By.xpath("//*[contains(text(),'Day 1')]"));
+      log("PASS", "TC-UI-005: Study plan generated for DSA");
     } catch (e) {
-      log("FAIL", "TC-UI-004: Generate study plan", e.message);
+      log("FAIL", "TC-UI-005: Generate study plan", e.message);
     }
 
-    // ── TC-UI-005: Resource panel expands ───────────────────────────────────
+    // TC-UI-006: Smart Plan tab navigates correctly
     try {
-      const resourceBtn = await driver.findElement(
-        By.xpath("//*[contains(text(),'View Resources')]")
-      );
-      await resourceBtn.click();
+      await driver.findElement(By.xpath("//button[contains(text(),'Smart Plan')]")).click();
       await sleep(800);
-
-      // Step 1 should be visible
-      const stepOne = await driver.findElement(
-        By.xpath("//*[contains(@class,'MuiAvatar') and contains(text(),'1')]")
-      );
-      log("PASS", "TC-UI-005: Resource panel expands and shows steps");
+      await driver.findElement(By.xpath("//*[contains(text(),'No day selected')]"));
+      log("PASS", "TC-UI-006: Smart Plan tab shows empty state");
     } catch (e) {
-      log("FAIL", "TC-UI-005: Resource panel", e.message);
+      log("FAIL", "TC-UI-006: Smart Plan tab", e.message);
     }
 
-    // ── TC-UI-006: Exam Planner tab navigates correctly ─────────────────────
+    // TC-UI-007: AI Predictor tab navigates correctly
     try {
-      const examTab = await driver.findElement(
-        By.xpath("//*[contains(text(),'Exam Planner')]")
-      );
-      await examTab.click();
+      await driver.findElement(By.xpath("//button[contains(text(),'AI Predictor')]")).click();
       await sleep(800);
-      log("PASS", "TC-UI-006: Exam Planner tab navigates correctly");
+      await driver.findElement(By.xpath("//*[contains(text(),'LSTM')]"));
+      log("PASS", "TC-UI-007: AI Predictor tab loads LSTM predictor");
     } catch (e) {
-      log("FAIL", "TC-UI-006: Exam Planner tab", e.message);
+      log("FAIL", "TC-UI-007: AI Predictor tab", e.message);
     }
 
-    // ── TC-UI-007: Logout clears session ────────────────────────────────────
+    // TC-UI-008: Logout clears session and returns to landing
     try {
-      const logoutBtn = await driver.findElement(
-        By.xpath("//button[contains(text(),'Logout')]")
-      );
-      await logoutBtn.click();
+      await driver.findElement(By.xpath("//button[contains(text(),'Logout')]")).click();
       await sleep(1000);
-
-      // Should be back on login page
-      await driver.findElement(By.xpath("//*[contains(text(),'Login')]"));
-      log("PASS", "TC-UI-007: Logout returns to login page");
+      await driver.findElement(By.xpath("//*[contains(text(),'Smart Learning Planner')]"));
+      log("PASS", "TC-UI-008: Logout returns to landing page");
     } catch (e) {
-      log("FAIL", "TC-UI-007: Logout", e.message);
+      log("FAIL", "TC-UI-008: Logout", e.message);
     }
 
-    // ── TC-UI-008: Login with wrong password shows error ────────────────────
+    // TC-UI-009: Login with wrong password shows error
     try {
-      const emailField = await driver.findElement(By.css("input[type='email'], input[name='email']"));
-      await emailField.sendKeys(TEST_EMAIL);
+      await driver.findElement(By.xpath("//button[contains(text(),'Login') or contains(text(),'Get Started')]")).click();
+      await sleep(800);
 
-      const passField = await driver.findElement(By.css("input[type='password']"));
-      await passField.sendKeys("wrongpassword");
-
-      const loginBtn = await driver.findElement(
-        By.xpath("//button[contains(text(),'Login') or contains(text(),'Sign In')]")
-      );
-      await loginBtn.click();
+      await driver.findElement(By.css("input[placeholder*='username' i]")).sendKeys(TEST_USERNAME);
+      await driver.findElement(By.css("input[type='password']")).sendKeys("wrongpassword");
+      await driver.findElement(By.xpath("//button[contains(text(),'Sign In')]")).click();
       await sleep(1500);
 
-      // Should still be on auth page (not redirected)
-      const stillOnAuth = await driver.findElements(
-        By.xpath("//button[contains(text(),'Login') or contains(text(),'Sign In')]")
-      );
-      if (stillOnAuth.length > 0) {
-        log("PASS", "TC-UI-008: Wrong password keeps user on login page");
-      } else {
-        log("FAIL", "TC-UI-008: Wrong password — user was incorrectly logged in");
-      }
+      await driver.findElement(By.xpath("//*[contains(@class,'MuiAlert') and contains(text(),'failed') or contains(text(),'Invalid') or contains(text(),'incorrect')]"));
+      log("PASS", "TC-UI-009: Wrong password shows error alert");
     } catch (e) {
-      log("FAIL", "TC-UI-008: Wrong password test", e.message);
+      log("FAIL", "TC-UI-009: Wrong password error", e.message);
     }
 
   } finally {
     await driver.quit();
 
-    // ── Summary ──────────────────────────────────────────────────────────────
     console.log("\n" + "─".repeat(50));
-    console.log(`Selenium UI Test Results`);
+    console.log("Selenium UI Test Results");
     console.log("─".repeat(50));
-    console.log(`Total:  ${passed + failed}`);
-    console.log(`Passed: ${passed}`);
-    console.log(`Failed: ${failed}`);
+    console.log(`Total:     ${passed + failed}`);
+    console.log(`Passed:    ${passed}`);
+    console.log(`Failed:    ${failed}`);
     console.log(`Pass Rate: ${Math.round((passed / (passed + failed)) * 100)}%`);
     console.log("─".repeat(50));
   }
