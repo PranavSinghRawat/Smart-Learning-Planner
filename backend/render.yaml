@@ -2,14 +2,19 @@ services:
   - type: web
     name: slp-backend
     runtime: node
+    region: oregon
+    plan: free
     buildCommand: npm install
     startCommand: node server.js
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 5001
       - key: MONGO_URI
-        sync: false
+        sync: false          # set in Render dashboard — never committed to repo
       - key: JWT_SECRET
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
+        sync: false          # set in Render dashboard — never committed to repo
+      - key: GROQ_API_KEY
+        sync: false          # set in Render dashboard — never committed to repo
