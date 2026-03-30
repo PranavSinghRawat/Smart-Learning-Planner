@@ -148,7 +148,7 @@ export default function PerformancePredictor({ userId, token }) {
             LSTM Performance Predictor
           </Typography>
           <Typography variant="caption" sx={{ color: "#64748B" }}>
-            Deep Learning · Sequence Modeling · 46K training sequences · R²=0.83
+            PyTorch LSTM · 66,049 trainable params · 46K sequences · Stacked 2-layer
           </Typography>
         </Box>
       </Box>
@@ -374,17 +374,65 @@ export default function PerformancePredictor({ userId, token }) {
             <Divider sx={{ mb: 2.5 }} />
 
             <Box sx={{ p: 2.5, background: "#fff", borderRadius: 2.5, border: "1px solid #E2E8F0" }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "#374151", display: "block", mb: 1 }}>
-                🧠 LSTM Architecture
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "#374151", display: "block", mb: 1.5 }}>
+                🧠 LSTM Architecture (PyTorch)
               </Typography>
-              <Typography variant="caption" sx={{ color: "#64748B", display: "block", mb: 0.5 }}>
-                {result.model_info?.architecture}
-              </Typography>
-              <Typography variant="caption" sx={{ color: "#64748B", display: "block", mb: 2 }}>
-                {result.model_info?.why_lstm}
-              </Typography>
+
+              {/* Architecture string */}
+              <Box sx={{ p: 1.5, background: "#F8FAFC", borderRadius: 1.5, border: "1px solid #E2E8F0", mb: 1.5, fontFamily: "monospace" }}>
+                <Typography variant="caption" sx={{ color: "#1E293B", fontFamily: "monospace", fontSize: "0.7rem" }}>
+                  {result.model_info?.architecture}
+                </Typography>
+              </Box>
+
+              {/* Gate equations */}
+              {result.model_info?.gates && (
+                <Box sx={{ mb: 1.5 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: "#374151", display: "block", mb: 0.5 }}>
+                    Gate Equations:
+                  </Typography>
+                  {Object.entries(result.model_info.gates).map(([gate, eq]) => (
+                    <Box key={gate} sx={{ display: "flex", gap: 1, mb: 0.3 }}>
+                      <Typography variant="caption" sx={{ color: "#6366F1", fontWeight: 700, minWidth: 52, textTransform: "capitalize" }}>
+                        {gate}:
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "#475569", fontFamily: "monospace", fontSize: "0.65rem" }}>
+                        {eq}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              )}
+
+              {/* Metrics row */}
+              {result.model_info?.metrics && (
+                <Box sx={{ display: "flex", gap: 1.5, mb: 1.5, flexWrap: "wrap" }}>
+                  {[
+                    { label: "R²",   value: result.model_info.metrics.r2?.toFixed(4)  },
+                    { label: "RMSE", value: result.model_info.metrics.rmse?.toFixed(4) },
+                    { label: "MAE",  value: result.model_info.metrics.mae?.toFixed(4)  },
+                  ].map(m => (
+                    <Box key={m.label} sx={{ px: 1.5, py: 0.5, background: "#EFF6FF", borderRadius: 1, border: "1px solid #BFDBFE" }}>
+                      <Typography variant="caption" sx={{ color: "#1D4ED8", fontWeight: 700, fontSize: "0.7rem" }}>
+                        {m.label}: {m.value}
+                      </Typography>
+                    </Box>
+                  ))}
+                  <Box sx={{ px: 1.5, py: 0.5, background: "#F5F3FF", borderRadius: 1, border: "1px solid #DDD6FE" }}>
+                    <Typography variant="caption" sx={{ color: "#6D28D9", fontWeight: 700, fontSize: "0.7rem" }}>
+                      Params: {result.model_info.trainable_params?.toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ px: 1.5, py: 0.5, background: "#F0FDF4", borderRadius: 1, border: "1px solid #A7F3D0" }}>
+                    <Typography variant="caption" sx={{ color: "#065F46", fontWeight: 700, fontSize: "0.7rem" }}>
+                      Trained on: {result.model_info.training_sequences?.toLocaleString()} sequences
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
               <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                {["Forget Gate", "Input Gate", "Output Gate", "Cell State", "Vanishing Gradient Fix"].map(tag => (
+                {["Forget Gate", "Input Gate", "Output Gate", "Cell State", "BPTT", "Vanishing Gradient Fix", "PyTorch"].map(tag => (
                   <Chip key={tag} label={tag} size="small"
                     sx={{ background: "#EFF6FF", color: "#1D4ED8", fontSize: "0.65rem", fontWeight: 600, height: 22 }} />
                 ))}

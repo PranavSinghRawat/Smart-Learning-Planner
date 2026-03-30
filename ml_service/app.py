@@ -1,16 +1,11 @@
 """
 ML Service — Flask API
 ======================
-Serves the trained MLP model for session effectiveness scoring.
+Serves two trained models:
 
-POST /score
-  Body: { "sessions": [ { "difficulty": 1, "days_to_exam": 7,
-                           "past_hours": 3, "prev_confidence": 2.5,
-                           "topic_weight": 0.8, "hours_available": 4 }, ... ] }
-  Returns: { "scores": [0.72, 0.45, ...] }
-
-GET /health
-  Returns: { "status": "ok", "model": "MLP loaded" }
+  POST /score    → MLP (Feedforward NN) — session effectiveness scoring
+  POST /predict  → LSTM (PyTorch)       — next-day performance prediction
+  GET  /health   → model status + architecture info
 """
 
 from flask import Flask, request, jsonify
@@ -19,53 +14,74 @@ import numpy as np
 import pickle
 import os
 
-# Import LSTM class so pickle can deserialize it
-from lstm_train import SimpleLSTMPredictor
-
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
-# Load MLP model and scaler at startup
+# ── Load MLP ──────────────────────────────────────────────────────────────────
 try:
     with open(os.path.join(BASE, "mlp_model.pkl"), "rb") as f:
-        model = pickle.load(f)
+        mlp_model = pickle.load(f)
     with open(os.path.join(BASE, "scaler.pkl"), "rb") as f:
         scaler = pickle.load(f)
-    MODEL_LOADED = True
-    print("MLP model loaded successfully.")
+    MLP_LOADED = True
+    print("[OK] MLP model loaded.")
 except FileNotFoundError:
-    MODEL_LOADED = False
-    print("WARNING: MLP model not found. Run train_model.py first.")
+    MLP_LOADED = False
+    print("[WARN] MLP model not found — run train_model.py first.")
 
-# Load LSTM model at startup
+# ── Load LSTM ─────────────────────────────────────────────────────────────────
 try:
     with open(os.path.join(BASE, "lstm_model.pkl"), "rb") as f:
         lstm_model = pickle.load(f)
     LSTM_LOADED = True
-    print("LSTM model loaded successfully.")
+    print("[OK] LSTM model loaded.")
 except FileNotFoundError:
     LSTM_LOADED = False
-    print("WARNING: LSTM model not found. Run lstm_train.py first.")
+    print("[WARN] LSTM model not found — run lstm_train.py first.")
 
 
+# ── Health ────────────────────────────────────────────────────────────────────
 @app.route("/health", methods=["GET", "OPTIONS"])
 def health():
     if request.method == "OPTIONS":
         return jsonify({}), 200
+
+    lstm_metrics = lstm_model.metrics if LSTM_LOADED else {}
+
     return jsonify({
         "status": "ok",
-        "model": "MLP loaded" if MODEL_LOADED else "Model not found — run train_model.py",
-        "architecture": "Input(6) -> Dense(64,ReLU) -> Dense(32,ReLU) -> Dense(16,ReLU) -> Output(1)",
-        "features": ["difficulty", "days_to_exam", "past_hours", "prev_confidence", "topic_weight", "hours_available"],
+        "models": {
+            "mlp": {
+                "loaded": MLP_LOADED,
+                "type": "MLPRegressor (scikit-learn)",
+                "architecture": "Input(6) → Dense(64,ReLU) → Dense(32,ReLU) → Dense(16,ReLU) → Output(1)",
+                "task": "Session effectiveness scoring",
+            },
+            "lstm": {
+                "loaded": LSTM_LOADED,
+                "type": "Stacked LSTM (PyTorch)",
+                "architecture": "Input(7×1) → LSTM(64,layers=2,dropout=0.2) → Dense(32,ReLU) → Dense(1,Sigmoid)",
+                "task": "Next-day performance prediction",
+                "trainable_params": 52_545,
+                "training_sequences": 46_000,
+                "metrics": {
+                    "mse":  round(lstm_metrics.get("mse",  0), 6),
+                    "rmse": round(lstm_metrics.get("rmse", 0), 6),
+                    "mae":  round(lstm_metrics.get("mae",  0), 6),
+                    "r2":   round(lstm_metrics.get("r2",   0), 4),
+                },
+            },
+        },
     })
 
 
+# ── MLP: session scoring ──────────────────────────────────────────────────────
 @app.route("/score", methods=["POST"])
 def score():
-    if not MODEL_LOADED:
-        return jsonify({"error": "Model not loaded. Run train_model.py first."}), 503
+    if not MLP_LOADED:
+        return jsonify({"error": "MLP model not loaded. Run train_model.py first."}), 503
 
     data = request.get_json()
     if not data or "sessions" not in data:
@@ -76,40 +92,40 @@ def score():
         return jsonify({"scores": []})
 
     try:
-        features = []
-        for s in sessions:
-            features.append([
-                float(s.get("difficulty", 1)),        # 0=easy,1=medium,2=hard
-                float(s.get("days_to_exam", 15)),      # days remaining
-                float(s.get("past_hours", 0)),         # hours already studied
-                float(s.get("prev_confidence", 0)),    # last confidence (0-5)
-                float(s.get("topic_weight", 0.5)),     # weak topic weight (0-1)
-                float(s.get("hours_available", 4)),    # user's available hours today
-            ])
+        features = [[
+            float(s.get("difficulty",      1)),
+            float(s.get("days_to_exam",   15)),
+            float(s.get("past_hours",      0)),
+            float(s.get("prev_confidence", 0)),
+            float(s.get("topic_weight",  0.5)),
+            float(s.get("hours_available", 4)),
+        ] for s in sessions]
 
         X = np.array(features)
         X_scaled = scaler.transform(X)
-        raw_scores = model.predict(X_scaled)
-        scores = [round(float(np.clip(s, 0, 1)), 4) for s in raw_scores]
+        raw = mlp_model.predict(X_scaled)
+        scores = [round(float(np.clip(v, 0, 1)), 4) for v in raw]
 
         return jsonify({
             "scores": scores,
             "model_info": {
                 "type": "MLPRegressor",
-                "layers": "6 -> 64 -> 32 -> 16 -> 1",
+                "layers": "6 → 64 → 32 → 16 → 1",
                 "activation": "relu",
                 "regularisation": "L2 + early stopping",
-            }
+            },
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
+# ── LSTM: next-day prediction ─────────────────────────────────────────────────
 @app.route("/predict", methods=["POST", "OPTIONS"])
 def predict():
     if request.method == "OPTIONS":
         return jsonify({}), 200
+
     if not LSTM_LOADED:
         return jsonify({"error": "LSTM model not loaded. Run lstm_train.py first."}), 503
 
@@ -124,13 +140,29 @@ def predict():
     try:
         scores = [float(s) for s in scores]
         result = lstm_model.predict_single(scores)
+
         result["model_info"] = {
-            "type": "LSTM (Long Short-Term Memory)",
-            "unit": "Deep Learning Unit III — Sequence Modeling",
-            "architecture": "Input(7 timesteps) -> LSTM(64) -> Dropout(0.2) -> LSTM(32) -> Dense(16,ReLU) -> Output(1)",
-            "why_lstm": "Solves vanishing gradient problem of vanilla RNNs using forget/input/output gates",
+            "type":        "LSTM (Long Short-Term Memory) — PyTorch",
+            "framework":   "PyTorch 2.3",
+            "architecture": "Input(7×1) → LSTM(64,layers=2,dropout=0.2) → Dense(32,ReLU) → Dense(1,Sigmoid)",
+            "trainable_params": 52_545,
+            "training_sequences": 46_000,
+            "why_lstm": (
+                "Solves the vanishing gradient problem of vanilla RNNs. "
+                "Three gates (forget, input, output) control information flow "
+                "through the cell state, enabling the model to learn long-range "
+                "temporal dependencies in student study patterns."
+            ),
+            "gates": {
+                "forget": "f_t = σ(W_f·[h_{t-1},x_t] + b_f)  — what to discard",
+                "input":  "i_t = σ(W_i·[h_{t-1},x_t] + b_i)  — what new info to store",
+                "output": "o_t = σ(W_o·[h_{t-1},x_t] + b_o)  — what to output",
+                "cell":   "C_t = f_t⊙C_{t-1} + i_t⊙C̃_t       — updated cell state",
+            },
+            "metrics": lstm_model.metrics,
         }
         return jsonify(result)
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

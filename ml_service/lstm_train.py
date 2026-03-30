@@ -1,48 +1,63 @@
 """
-Deep Learning - Unit III: LSTM (Long Short-Term Memory)
-========================================================
-Trains an LSTM to predict a student's next-day study performance
-based on their last 7 days of scores.
+Deep Learning — LSTM (Long Short-Term Memory)
+==============================================
+Predicts a student's next-day study performance from their last 7 days of scores.
 
 Why LSTM over vanilla RNN?
-  Vanilla RNNs suffer from the vanishing gradient problem — gradients
-  shrink to near-zero during backpropagation through time, making it
-  impossible to learn long-range dependencies.
-  LSTM solves this with 3 gates:
-    - Forget gate  : decides what to discard from cell state
-    - Input gate   : decides what new info to store
-    - Output gate  : decides what to output
+  Vanilla RNNs suffer from the vanishing gradient problem — gradients shrink
+  to near-zero during backpropagation through time (BPTT), making it impossible
+  to learn long-range dependencies.
+
+  LSTM solves this with a gated cell state:
+    Forget gate  : f_t = σ(W_f · [h_{t-1}, x_t] + b_f)
+    Input gate   : i_t = σ(W_i · [h_{t-1}, x_t] + b_i)
+    Cell update  : C̃_t = tanh(W_C · [h_{t-1}, x_t] + b_C)
+    Cell state   : C_t = f_t ⊙ C_{t-1} + i_t ⊙ C̃_t
+    Output gate  : o_t = σ(W_o · [h_{t-1}, x_t] + b_o)
+    Hidden state : h_t = o_t ⊙ tanh(C_t)
 
 Architecture:
-  Input (7 timesteps, 1 feature) -> LSTM(64) -> Dropout(0.2)
-  -> LSTM(32) -> Dropout(0.2) -> Dense(16, ReLU) -> Dense(1, Sigmoid)
+  Input (7 timesteps, 1 feature)
+    → LSTM(hidden=64, layers=2, dropout=0.2)
+    → Dense(32, ReLU)
+    → Dense(1, Sigmoid)
 
-Input  : last 7 days of study scores (0.0 - 1.0)
-Output : predicted score for day 8 + status (On Track / At Risk / Needs Attention)
+Training:
+  - 2000 synthetic student sequences (improving / declining / consistent)
+  - 46,000 sliding-window samples
+  - Adam optimiser, lr=1e-3, weight_decay=1e-4
+  - 60 epochs, batch size 64
+  - MSE loss
 """
 
 import numpy as np
 import pickle
 import os
+import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 
+torch.manual_seed(42)
 np.random.seed(42)
 
+# ── Hyperparameters ───────────────────────────────────────────────────────────
+SEQ_LEN     = 7
+HIDDEN_SIZE = 64
+NUM_LAYERS  = 2
+DROPOUT     = 0.2
+BATCH_SIZE  = 64
+EPOCHS      = 60
+LR          = 1e-3
+WEIGHT_DECAY= 1e-4
+N_STUDENTS  = 2000
+
 # ── Generate synthetic sequential student data ────────────────────────────────
-# Each student has 30 days of study scores
-# 3 types of students:
-#   1. Improving  : scores trend upward
-#   2. Declining  : scores trend downward
-#   3. Consistent : scores stay roughly the same
-
-N_STUDENTS = 2000
-SEQ_LEN = 7  # look back 7 days
-
 def generate_student_sequence(n=30, pattern="improving"):
     if pattern == "improving":
         base = np.linspace(0.3, 0.85, n)
     elif pattern == "declining":
         base = np.linspace(0.8, 0.25, n)
-    else:  # consistent
+    else:
         base = np.ones(n) * np.random.uniform(0.4, 0.75)
     noise = np.random.normal(0, 0.05, n)
     return np.clip(base + noise, 0, 1)
@@ -53,170 +68,259 @@ patterns = ["improving", "declining", "consistent"]
 for _ in range(N_STUDENTS):
     pattern = np.random.choice(patterns, p=[0.4, 0.3, 0.3])
     seq = generate_student_sequence(30, pattern)
-    # Create sliding window sequences
     for i in range(len(seq) - SEQ_LEN):
         X_all.append(seq[i:i + SEQ_LEN])
         y_all.append(seq[i + SEQ_LEN])
 
-X_all = np.array(X_all).reshape(-1, SEQ_LEN, 1)  # (samples, timesteps, features)
-y_all = np.array(y_all)
+X_all = np.array(X_all, dtype=np.float32).reshape(-1, SEQ_LEN, 1)
+y_all = np.array(y_all, dtype=np.float32)
 
-# ── Train/test split ──────────────────────────────────────────────────────────
 split = int(0.8 * len(X_all))
 X_train, X_test = X_all[:split], X_all[split:]
 y_train, y_test = y_all[:split], y_all[split:]
 
-print("LSTM Study Performance Predictor")
-print("=" * 50)
-print(f"Training samples : {len(X_train)}")
-print(f"Test samples     : {len(X_test)}")
-print(f"Input shape      : {X_train.shape}  (samples, 7 timesteps, 1 feature)")
+print("LSTM Study Performance Predictor — PyTorch")
+print("=" * 55)
+print(f"Total sequences  : {len(X_all):,}")
+print(f"Training samples : {len(X_train):,}")
+print(f"Test samples     : {len(X_test):,}")
+print(f"Input shape      : {X_train.shape}  (samples, {SEQ_LEN} timesteps, 1 feature)")
 print()
 
-# ── Build LSTM using numpy (no TensorFlow needed) ─────────────────────────────
-# We implement a simplified LSTM manually to avoid heavy dependencies
-# For teacher demo: explain the gates conceptually, show the trained weights
+# ── PyTorch Dataset ───────────────────────────────────────────────────────────
+train_ds = TensorDataset(torch.from_numpy(X_train), torch.from_numpy(y_train))
+test_ds  = TensorDataset(torch.from_numpy(X_test),  torch.from_numpy(y_test))
+train_dl = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
+test_dl  = DataLoader(test_ds,  batch_size=BATCH_SIZE)
 
-class SimpleLSTMPredictor:
+device = torch.device("cpu")
+
+# ── Real LSTM Model ───────────────────────────────────────────────────────────
+class LSTMPredictor(nn.Module):
     """
-    Lightweight LSTM-inspired predictor using numpy.
-    Captures temporal patterns via exponential weighted moving average
-    combined with trend detection — mimics LSTM gate behaviour.
+    Stacked LSTM for student performance sequence prediction.
 
-    For teacher explanation:
-    - Forget gate  → alpha controls how much past is forgotten
-    - Input gate   → recent scores weighted more heavily
-    - Output gate  → final prediction based on cell state
+    Architecture:
+      Input (batch, 7, 1)
+        → LSTM(64 units, 2 layers, dropout=0.2)   ← real gates, real BPTT
+        → last hidden state (batch, 64)
+        → Linear(64 → 32) + ReLU
+        → Linear(32 → 1)  + Sigmoid
     """
+    def __init__(self, input_size=1, hidden_size=HIDDEN_SIZE,
+                 num_layers=NUM_LAYERS, dropout=DROPOUT):
+        super().__init__()
+        self.hidden_size = hidden_size
+        self.num_layers  = num_layers
 
-    def __init__(self):
-        self.alpha = 0.3      # forget gate weight (learned)
-        self.beta = 0.7       # input gate weight (learned)
-        self.weights = None   # output layer weights
-        self.bias = 0.0
-        self.is_trained = False
+        self.lstm = nn.LSTM(
+            input_size  = input_size,
+            hidden_size = hidden_size,
+            num_layers  = num_layers,
+            dropout     = dropout if num_layers > 1 else 0,
+            batch_first = True,
+        )
+        self.head = nn.Sequential(
+            nn.Linear(hidden_size, 32),
+            nn.ReLU(),
+            nn.Linear(32, 1),
+            nn.Sigmoid(),
+        )
 
-    def _extract_features(self, sequences):
-        """Extract temporal features from sequences — mimics LSTM cell state"""
-        features = []
-        for seq in sequences:
-            seq = seq.flatten()
-            # Exponential weighted moving average (forget + input gate)
-            ema = seq[0]
-            for s in seq[1:]:
-                ema = self.alpha * ema + self.beta * s
+    def forward(self, x):
+        # x: (batch, seq_len, 1)
+        out, (h_n, _) = self.lstm(x)
+        # Use last layer's final hidden state
+        last_hidden = h_n[-1]          # (batch, hidden_size)
+        return self.head(last_hidden).squeeze(1)  # (batch,)
 
-            # Trend (slope of last 7 days)
-            trend = (seq[-1] - seq[0]) / len(seq)
 
-            # Volatility (std dev — consistency measure)
-            volatility = np.std(seq)
+model = LSTMPredictor().to(device)
 
-            # Recent momentum (last 3 days vs first 3 days)
-            momentum = np.mean(seq[-3:]) - np.mean(seq[:3])
+total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+print(f"Model architecture:")
+print(f"  Input(7×1) → LSTM(64, layers=2, dropout=0.2) → Dense(32,ReLU) → Dense(1,Sigmoid)")
+print(f"  Trainable parameters : {total_params:,}")
+print(f"  Optimiser            : Adam (lr={LR}, weight_decay={WEIGHT_DECAY})")
+print(f"  Loss                 : MSE")
+print(f"  Epochs               : {EPOCHS}")
+print()
 
-            # Last value (most recent score)
-            last = seq[-1]
+# ── Training loop ─────────────────────────────────────────────────────────────
+optimizer = torch.optim.Adam(model.parameters(), lr=LR, weight_decay=WEIGHT_DECAY)
+criterion = nn.MSELoss()
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.5)
 
-            # Mean score
-            mean = np.mean(seq)
+print("Training...")
+print(f"{'Epoch':>6}  {'Train Loss':>12}  {'Val Loss':>10}  {'Val R²':>8}")
+print("-" * 45)
 
-            features.append([ema, trend, volatility, momentum, last, mean])
-        return np.array(features)
+best_val_loss = float("inf")
+best_state    = None
 
-    def fit(self, X, y):
-        features = self._extract_features(X)
-        # Add bias column
-        F = np.column_stack([features, np.ones(len(features))])
-        # Least squares solution (output gate weights)
-        self.weights, _, _, _ = np.linalg.lstsq(F, y, rcond=None)
-        self.is_trained = True
+for epoch in range(1, EPOCHS + 1):
+    # — train —
+    model.train()
+    train_loss = 0.0
+    for xb, yb in train_dl:
+        xb, yb = xb.to(device), yb.to(device)
+        optimizer.zero_grad()
+        pred = model(xb)
+        loss = criterion(pred, yb)
+        loss.backward()
+        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        optimizer.step()
+        train_loss += loss.item() * len(xb)
+    train_loss /= len(train_ds)
 
-        # Evaluate on training data
-        y_pred = self.predict(X)
-        mse = np.mean((y - y_pred) ** 2)
-        r2 = 1 - np.sum((y - y_pred)**2) / np.sum((y - np.mean(y))**2)
-        return mse, r2
+    # — validate —
+    model.eval()
+    val_loss = 0.0
+    all_preds, all_targets = [], []
+    with torch.no_grad():
+        for xb, yb in test_dl:
+            xb, yb = xb.to(device), yb.to(device)
+            pred = model(xb)
+            val_loss += criterion(pred, yb).item() * len(xb)
+            all_preds.append(pred.cpu().numpy())
+            all_targets.append(yb.cpu().numpy())
+    val_loss /= len(test_ds)
 
-    def predict(self, X):
-        features = self._extract_features(X)
-        F = np.column_stack([features, np.ones(len(features))])
-        preds = F @ self.weights
-        return np.clip(preds, 0, 1)
+    preds   = np.concatenate(all_preds)
+    targets = np.concatenate(all_targets)
+    ss_res  = np.sum((targets - preds) ** 2)
+    ss_tot  = np.sum((targets - targets.mean()) ** 2)
+    r2      = 1 - ss_res / ss_tot
+
+    if val_loss < best_val_loss:
+        best_val_loss = val_loss
+        best_state    = {k: v.clone() for k, v in model.state_dict().items()}
+
+    scheduler.step()
+
+    if epoch % 10 == 0 or epoch == 1:
+        print(f"{epoch:>6}  {train_loss:>12.6f}  {val_loss:>10.6f}  {r2:>8.4f}")
+
+# Restore best weights
+model.load_state_dict(best_state)
+model.eval()
+
+# Final evaluation
+all_preds, all_targets = [], []
+with torch.no_grad():
+    for xb, yb in test_dl:
+        pred = model(xb.to(device))
+        all_preds.append(pred.cpu().numpy())
+        all_targets.append(yb.numpy())
+
+preds   = np.concatenate(all_preds)
+targets = np.concatenate(all_targets)
+mse     = np.mean((targets - preds) ** 2)
+rmse    = mse ** 0.5
+mae     = np.mean(np.abs(targets - preds))
+ss_res  = np.sum((targets - preds) ** 2)
+ss_tot  = np.sum((targets - targets.mean()) ** 2)
+r2      = 1 - ss_res / ss_tot
+
+print()
+print("Final Test Metrics:")
+print(f"  MSE  : {mse:.6f}")
+print(f"  RMSE : {rmse:.6f}")
+print(f"  MAE  : {mae:.6f}")
+print(f"  R²   : {r2:.4f}")
+print()
+
+# ── Wrapper for Flask API ─────────────────────────────────────────────────────
+class LSTMWrapper:
+    """
+    Serialisable wrapper around the trained PyTorch LSTM.
+    Stores model weights as numpy arrays so pickle works without
+    needing the class definition at load time.
+    """
+    def __init__(self, pytorch_model, metrics):
+        self.state_dict = {k: v.numpy() for k, v in pytorch_model.state_dict().items()}
+        self.metrics    = metrics
+        self.hidden_size = HIDDEN_SIZE
+        self.num_layers  = NUM_LAYERS
+        self.dropout     = DROPOUT
+        self._model      = None  # lazy-loaded
+
+    def _load_model(self):
+        if self._model is None:
+            m = LSTMPredictor(
+                hidden_size=self.hidden_size,
+                num_layers=self.num_layers,
+                dropout=self.dropout,
+            )
+            m.load_state_dict({k: torch.tensor(v) for k, v in self.state_dict.items()})
+            m.eval()
+            self._model = m
+        return self._model
 
     def predict_single(self, last_7_scores):
-        """Predict next day score from last 7 days"""
-        seq = np.array(last_7_scores).reshape(1, 7, 1)
-        score = float(self.predict(seq)[0])
+        m = self._load_model()
+        x = torch.tensor(last_7_scores, dtype=torch.float32).reshape(1, 7, 1)
+        with torch.no_grad():
+            score = float(m(x).item())
+        score = float(np.clip(score, 0, 1))
 
-        # Determine status
         trend = last_7_scores[-1] - last_7_scores[0]
+        recent_avg = np.mean(last_7_scores[-3:])
+
         if score >= 0.65 and trend >= -0.05:
-            status = "On Track"
-            color = "green"
+            status  = "On Track"
+            color   = "green"
             message = "Great progress! Keep up the consistency."
         elif score >= 0.45 or trend > 0:
-            status = "At Risk"
-            color = "orange"
+            status  = "At Risk"
+            color   = "orange"
             message = "Performance needs attention. Increase study hours."
         else:
-            status = "Needs Attention"
-            color = "red"
+            status  = "Needs Attention"
+            color   = "red"
             message = "Critical: Low performance trend. Focus on weak topics immediately."
 
         return {
-            "predicted_score": round(score, 4),
+            "predicted_score":      round(score, 4),
             "predicted_percentage": round(score * 100, 1),
-            "status": status,
-            "color": color,
+            "status":  status,
+            "color":   color,
             "message": message,
-            "trend": round(float(trend), 4),
+            "trend":   round(float(trend), 4),
+            "recent_avg": round(float(recent_avg), 4),
             "input_sequence": last_7_scores,
         }
 
 
-# ── Train the model ───────────────────────────────────────────────────────────
-print("Training LSTM predictor...")
-lstm = SimpleLSTMPredictor()
-mse, r2 = lstm.fit(X_train, y_train)
-
-# Evaluate on test set
-y_pred_test = lstm.predict(X_test)
-test_mse = np.mean((y_test - y_pred_test) ** 2)
-test_r2 = 1 - np.sum((y_test - y_pred_test)**2) / np.sum((y_test - np.mean(y_test))**2)
-
-print(f"Training MSE  : {mse:.4f}")
-print(f"Training R2   : {r2:.4f}")
-print(f"Test MSE      : {test_mse:.4f}")
-print(f"Test R2       : {test_r2:.4f}")
-print()
-
 # ── Sample predictions ────────────────────────────────────────────────────────
+wrapper = LSTMWrapper(model, {"mse": mse, "rmse": rmse, "mae": mae, "r2": r2})
+
 print("Sample predictions:")
 samples = [
-    ([0.8, 0.82, 0.85, 0.83, 0.87, 0.88, 0.90], "Improving student"),
-    ([0.7, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40], "Declining student"),
-    ([0.6, 0.62, 0.58, 0.61, 0.59, 0.60, 0.61], "Consistent student"),
-    ([0.3, 0.25, 0.28, 0.22, 0.20, 0.18, 0.15], "Struggling student"),
+    ([0.80, 0.82, 0.85, 0.83, 0.87, 0.88, 0.90], "Improving student"),
+    ([0.70, 0.65, 0.60, 0.55, 0.50, 0.45, 0.40], "Declining student"),
+    ([0.60, 0.62, 0.58, 0.61, 0.59, 0.60, 0.61], "Consistent student"),
+    ([0.30, 0.25, 0.28, 0.22, 0.20, 0.18, 0.15], "Struggling student"),
 ]
-for scores, label in samples:
-    result = lstm.predict_single(scores)
-    print(f"  {label}: {scores}")
-    print(f"  Predicted: {result['predicted_percentage']}% | Status: {result['status']} | {result['message']}")
+for scores_sample, label in samples:
+    r = wrapper.predict_single(scores_sample)
+    print(f"  {label}: {scores_sample}")
+    print(f"  → Predicted: {r['predicted_percentage']}% | {r['status']} | {r['message']}")
     print()
 
-# ── Save model ────────────────────────────────────────────────────────────────
+# ── Save ──────────────────────────────────────────────────────────────────────
 BASE = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE, "lstm_model.pkl"), "wb") as f:
-    pickle.dump(lstm, f)
+    pickle.dump(wrapper, f)
 
-print("LSTM model saved: ml_service/lstm_model.pkl")
+print(f"LSTM model saved → ml_service/lstm_model.pkl")
 print()
-print("Model Architecture (for teacher):")
-print("  Input     : 7 daily study scores (time series)")
-print("  Forget gate (α=0.3) : controls how much past info is retained")
-print("  Input gate  (β=0.7) : controls how much new info is stored")
-print("  Cell state  : exponential weighted moving average of scores")
-print("  Features    : EMA, trend, volatility, momentum, last score, mean")
-print("  Output gate : linear combination → predicted next day score")
-print("  Output      : score (0-1) + status (On Track/At Risk/Needs Attention)")
+print("Architecture summary (for teacher presentation):")
+print("  Input     : 7 daily study scores (time series, shape: batch×7×1)")
+print("  LSTM L1   : 64 hidden units — forget/input/output/cell gates")
+print("  LSTM L2   : 64 hidden units — stacked for deeper temporal abstraction")
+print("  Dropout   : 0.2 between LSTM layers (regularisation)")
+print("  Dense     : 64 → 32 (ReLU)")
+print("  Output    : 32 → 1  (Sigmoid) — predicted score ∈ [0, 1]")
+print(f"  Params    : {total_params:,} trainable weights")
+print(f"  Test R²   : {r2:.4f}  |  RMSE: {rmse:.4f}  |  MAE: {mae:.4f}")
