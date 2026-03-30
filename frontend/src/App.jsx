@@ -9,6 +9,19 @@ import {
   InputAdornment, Skeleton, Fade,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import MenuBookIcon from "@mui/icons-material/MenuBook";
+import HistoryIcon from "@mui/icons-material/History";
+import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
+import TimerIcon from "@mui/icons-material/Timer";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import TuneIcon from "@mui/icons-material/Tune";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import SchoolIcon from "@mui/icons-material/School";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import PsychologyIcon from "@mui/icons-material/Psychology";
+import LightbulbIcon from "@mui/icons-material/Lightbulb";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import SmartToyIcon from "@mui/icons-material/SmartToy";
 import {
   PieChart, Pie, Cell, Tooltip, BarChart, Bar,
   XAxis, YAxis, ResponsiveContainer,
@@ -36,7 +49,7 @@ const COLORS = {
 function generateTopicsForAnySubject(name) {
   const n = name.trim();
   return {
-    emoji: "🎯",
+    emoji: "",
     fullName: n,
     description: `A structured learning path for ${n} — from fundamentals to advanced mastery`,
     category: "custom",
@@ -179,7 +192,7 @@ function App() {
     }
     const parse = (t) => t.split('\n').map(x => x.trim()).filter(x => x.length > 0);
     setCustomSubjects({ ...customSubjects, [customSubjectName]: {
-      emoji: "🎯", fullName: customSubjectName,
+      emoji: "", fullName: customSubjectName,
       description: `Custom learning path for ${customSubjectName}`,
       Beginner: parse(customTopics.Beginner),
       Intermediate: parse(customTopics.Intermediate),
@@ -190,7 +203,7 @@ function App() {
     setCustomSubjectName("");
     setCustomTopics({ Beginner: "", Intermediate: "", Advanced: "" });
     setCustomLevelTab(0);
-    showSnackbar(`✨ Custom subject "${customSubjectName}" created!`);
+    showSnackbar(`Custom subject "${customSubjectName}" created`);
   };
 
   const allSubjects = useMemo(() => ({ ...BASE_SUBJECTS, ...customSubjects }), [customSubjects]);
@@ -206,7 +219,7 @@ function App() {
     const subData = resolveSubject(subject);
     if (!subject.trim()) { showSnackbar('Please enter a subject name', 'error'); return; }
     setLoading(true);
-    showSnackbar('🤖 Groq AI is generating your study plan...', 'info');
+    showSnackbar('Generating your study plan...', 'info');
     try {
       const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
       const res = await fetch(`${base}/resources/plan`, {
@@ -219,7 +232,7 @@ function App() {
         if (data.plan && data.plan.length > 0) {
           setPlan(data.plan.map(d => ({ ...d, topics: d.topics.map(t => ({ ...t, completed: false })) })));
           setStudyHistory([{ id: Date.now(), subject, level, days, hours, createdAt: new Date().toLocaleDateString(), completionPercentage: 0 }, ...studyHistory]);
-          showSnackbar('✅ AI study plan generated!');
+          showSnackbar('AI study plan generated!');
           setLoading(false);
           return;
         }
@@ -241,7 +254,7 @@ function App() {
     }
     setPlan(planData);
     setStudyHistory([{ id: Date.now(), subject, level, days, hours, createdAt: new Date().toLocaleDateString(), completionPercentage: 0 }, ...studyHistory]);
-    showSnackbar('✅ Study plan generated!');
+    showSnackbar('Study plan generated!');
     setLoading(false);
   };
 
@@ -274,7 +287,7 @@ function App() {
       setCompletedFlash(key);
       setTimeout(() => setCompletedFlash(null), 700);
     }
-    showSnackbar(nowCompleted ? '✅ Topic completed!' : '↩️ Topic uncompleted');
+    showSnackbar(nowCompleted ? 'Topic completed!' : 'Topic uncompleted');
   };
 
   const dayProgress = (day) => {
@@ -340,17 +353,17 @@ function App() {
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
               fontSize: { xs: "1rem", sm: "1.15rem" },
             }}>
-              📚 Smart Learning Planner
+              Smart Learning Planner
             </Typography>
             {currentUsername && (
               <Typography variant="caption" sx={{ color: "#64748B", lineHeight: 1 }}>
-                👋 {currentUsername}
+                {currentUsername}
               </Typography>
             )}
           </Box>
 
           {/* Nav tabs */}
-          {[["📖 Study Planner", 0], ["🧠 Smart Plan", 1], ["🔮 AI Predictor", 2]].map(([label, idx]) => (
+          {[["Study Planner", 0], ["Smart Plan", 1], ["AI Predictor", 2]].map(([label, idx]) => (
             <Button
               key={idx}
               onClick={() => setActiveTab(idx)}
@@ -381,7 +394,7 @@ function App() {
               "&:hover": { background: "#F1F5F9", color: COLORS.primary },
             }}
           >
-            📋
+            <HistoryIcon sx={{ fontSize: 20 }} />
           </Button>
           <Button
             onClick={handleLogout}
@@ -409,12 +422,12 @@ function App() {
           <Card elevation={0} sx={{ mb: 3, borderRadius: 3, background: "#fff", border: "1px solid #E2E8F0", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", animation: "slideDown 0.2s ease" }}>
             <CardContent sx={{ pb: "16px !important" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-                <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.secondary}15`, border: `1px solid ${COLORS.secondary}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>📚</Box>
+                <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.secondary}15`, border: `1px solid ${COLORS.secondary}25`, display: "flex", alignItems: "center", justifyContent: "center" }}><MenuBookIcon sx={{ fontSize: 18, color: COLORS.secondary }} /></Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>Study History</Typography>
                   <Typography variant="caption" sx={{ color: "#64748B" }}>{studyHistory.length} session{studyHistory.length !== 1 ? "s" : ""} recorded</Typography>
                 </Box>
-                <Button size="small" onClick={() => setShowHistory(false)} sx={{ color: "#94A3B8", textTransform: "none", fontWeight: 600, "&:hover": { color: "#EF4444", background: "#FFF5F5" } }}>✕ Close</Button>
+                <Button size="small" onClick={() => setShowHistory(false)} sx={{ color: "#94A3B8", textTransform: "none", fontWeight: 600, "&:hover": { color: "#EF4444", background: "#FFF5F5" } }}>Close</Button>
               </Box>
               <Divider sx={{ mb: 2 }} />
               {studyHistory.length === 0 ? (
@@ -424,8 +437,8 @@ function App() {
                   {studyHistory.map(entry => (
                     <ListItem key={entry.id} sx={{ px: 0, py: 1, borderBottom: "1px solid #F1F5F9", "&:last-child": { borderBottom: "none" } }}>
                       <ListItemText
-                        primary={<Typography variant="body2" sx={{ fontWeight: 600, color: "#1E293B" }}>{resolveSubject(entry.subject)?.emoji || "🎯"} {entry.subject} — {entry.level}</Typography>}
-                        secondary={<Typography variant="caption" sx={{ color: "#94A3B8" }}>📅 {entry.createdAt} · {entry.days} days × {entry.hours}h/day</Typography>}
+                        primary={<Typography variant="body2" sx={{ fontWeight: 600, color: "#1E293B" }}>{entry.subject} — {entry.level}</Typography>}
+                        secondary={<Typography variant="caption" sx={{ color: "#94A3B8" }}>{entry.createdAt} · {entry.days} days × {entry.hours}h/day</Typography>}
                       />
                     </ListItem>
                   ))}
@@ -441,8 +454,8 @@ function App() {
             <Box sx={{
               width: 36, height: 36, borderRadius: 2,
               background: `${COLORS.primary}12`, border: `1px solid ${COLORS.primary}20`,
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem",
-            }}>📋</Box>
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}><TuneIcon sx={{ fontSize: 18, color: COLORS.primary }} /></Box>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>Plan Your Study</Typography>
               <Typography variant="caption" sx={{ color: "#64748B" }}>
@@ -454,12 +467,11 @@ function App() {
 
           {currentSubjectData && subject.trim() && (
             <Box sx={{ mb: 3, p: 2, background: "#F0F9FF", borderRadius: 2, border: `2px solid ${COLORS.secondary}`, display: "flex", alignItems: "center", gap: 2 }}>
-              <Typography variant="h4">{currentSubjectData.emoji}</Typography>
               <Box>
                 <Typography variant="h6" sx={{ fontWeight: 600 }}>{currentSubjectData.fullName}</Typography>
                 <Typography variant="body2" color="textSecondary">{currentSubjectData.description}</Typography>
                 {!CATALOG_DB[subject] && (
-                  <Chip label="✨ Auto-generated plan" size="small" sx={{ mt: 0.5, background: "#FEF9C3", color: "#92400E", fontWeight: 600 }} />
+                  <Chip label="Auto-generated plan" size="small" sx={{ mt: 0.5, background: "#FEF9C3", color: "#92400E", fontWeight: 600 }} />
                 )}
               </Box>
             </Box>
@@ -498,9 +510,9 @@ function App() {
               <FormControl fullWidth>
                 <InputLabel>Level</InputLabel>
                 <Select value={level} onChange={e => setLevel(e.target.value)} sx={{ borderRadius: 2 }} label="Level">
-                  <MenuItem value="Beginner">🌱 Beginner</MenuItem>
-                  <MenuItem value="Intermediate">📈 Intermediate</MenuItem>
-                  <MenuItem value="Advanced">🚀 Advanced</MenuItem>
+                  <MenuItem value="Beginner">Beginner</MenuItem>
+                  <MenuItem value="Intermediate">Intermediate</MenuItem>
+                  <MenuItem value="Advanced">Advanced</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -508,14 +520,14 @@ function App() {
               <Button fullWidth variant="contained"
                 sx={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`, borderRadius: 2, fontWeight: 600, py: 1.5 }}
                 onClick={generatePlan} disabled={loading}>
-                {loading ? '🤖 Generating...' : '🚀 Generate'}
+                {loading ? 'Generating...' : 'Generate'}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
               <Button fullWidth variant="outlined"
                 sx={{ borderColor: COLORS.primary, color: COLORS.primary, borderRadius: 2, fontWeight: 600, py: 1.5 }}
                 onClick={() => setShowCustomDialog(true)}>
-                ✨ Custom Plan
+                Custom Plan
               </Button>
             </Grid>
           </Grid>
@@ -524,15 +536,15 @@ function App() {
         {/* CUSTOM SUBJECT DIALOG */}
         <Dialog open={showCustomDialog} onClose={() => setShowCustomDialog(false)} maxWidth="md" fullWidth>
           <DialogTitle sx={{ fontWeight: 600, fontSize: '1.3rem', background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`, color: '#fff' }}>
-            ✨ Create Custom Study Plan
+            Create Custom Study Plan
           </DialogTitle>
           <DialogContent sx={{ pt: 3 }}>
             <TextField fullWidth label="Subject Name" placeholder="e.g., Advanced Databases, Cloud Computing"
               value={customSubjectName} onChange={e => setCustomSubjectName(e.target.value)} sx={{ mb: 3 }} />
-            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0F172A", mb: 2 }}>📚 Add Topics by Level</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0F172A", mb: 2 }}>Add Topics by Level</Typography>
             {/* Pill-style tab switcher */}
             <Box sx={{ display: "flex", gap: 1, mb: 2.5, p: 0.5, background: "#F1F5F9", borderRadius: 2.5, width: "fit-content" }}>
-              {[["🌱 Beginner", 0], ["📈 Intermediate", 1], ["🚀 Advanced", 2]].map(([label, idx]) => (
+              {[["Beginner", 0], ["Intermediate", 1], ["Advanced", 2]].map(([label, idx]) => (
                 <Button key={idx} size="small" onClick={() => setCustomLevelTab(idx)}
                   sx={{
                     textTransform: "none", fontWeight: 600, fontSize: "0.8rem",
@@ -550,13 +562,13 @@ function App() {
             {[["Beginner","beginner"],["Intermediate","intermediate"],["Advanced","advanced"]].map(([key, label], i) => (
               <Box key={key} sx={{ display: customLevelTab === i ? 'block' : 'none' }}>
                 <Typography variant="caption" color="textSecondary" sx={{ display: 'block', mb: 1 }}>
-                  💡 Add {label}-level topics (one per line)
+                  Add {label}-level topics (one per line)
                 </Typography>
                 <TextField fullWidth multiline rows={5} label={`${key} Topics`} placeholder="Topic 1&#10;Topic 2&#10;Topic 3"
                   value={customTopics[key]} onChange={e => setCustomTopics({ ...customTopics, [key]: e.target.value })} />
               </Box>
             ))}
-            <Alert severity="info" sx={{ mt: 2 }}>📌 Tip: Topics will appear exactly as you type them in your study plan!</Alert>
+            <Alert severity="info" sx={{ mt: 2 }}>Tip: Topics will appear exactly as you type them in your study plan!</Alert>
           </DialogContent>
           <DialogActions sx={{ p: 2 }}>
             <Button onClick={() => { setShowCustomDialog(false); setCustomTopics({ Beginner: "", Intermediate: "", Advanced: "" }); setCustomLevelTab(0); }}>Cancel</Button>
@@ -576,8 +588,8 @@ function App() {
             <Box sx={{
               width: 32, height: 32, borderRadius: 2,
               background: `${COLORS.primary}12`, border: `1px solid ${COLORS.primary}20`,
-              display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem", flexShrink: 0,
-            }}>⏱️</Box>
+              display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+            }}><TimerIcon sx={{ fontSize: 18, color: COLORS.primary }} /></Box>
             <Typography variant="body2" sx={{ fontWeight: 600, color: "#64748B", flexShrink: 0 }}>Study Timer</Typography>
             <Typography sx={{
               fontWeight: 800, color: COLORS.primary, fontFamily: "monospace",
@@ -600,7 +612,7 @@ function App() {
             <Button size="small" variant="outlined"
               sx={{ borderColor: "#E2E8F0", color: "#64748B", borderRadius: 2, textTransform: "none", fontWeight: 600, px: 2, py: 0.6, fontSize: "0.8rem", "&:hover": { borderColor: COLORS.primary, color: COLORS.primary } }}
               startIcon={<StopIcon sx={{ fontSize: "0.9rem !important" }} />}
-              onClick={() => { setTimerSeconds(0); setTimerActive(false); showSnackbar('⏱️ Timer reset'); }}>
+              onClick={() => { setTimerSeconds(0); setTimerActive(false); showSnackbar('Timer reset'); }}>
               Reset
             </Button>
           </Paper>
@@ -613,7 +625,7 @@ function App() {
               <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", boxShadow: "0 1px 8px rgba(0,0,0,0.05)", height: "100%" }}>
                 <CardContent>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-                    <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.ahead}15`, border: `1px solid ${COLORS.ahead}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>📊</Box>
+                    <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.ahead}15`, border: `1px solid ${COLORS.ahead}25`, display: "flex", alignItems: "center", justifyContent: "center" }}><TrendingUpIcon sx={{ fontSize: 18, color: COLORS.ahead }} /></Box>
                     <Box>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>Overall Progress</Typography>
                       <Typography variant="caption" sx={{ color: "#64748B" }}>{pieData[0].value} of {pieData[0].value + pieData[1].value} topics done</Typography>
@@ -640,7 +652,7 @@ function App() {
               <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", boxShadow: "0 1px 8px rgba(0,0,0,0.05)" }}>
                 <CardContent>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
-                    <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.secondary}15`, border: `1px solid ${COLORS.secondary}25`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>📈</Box>
+                    <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.secondary}15`, border: `1px solid ${COLORS.secondary}25`, display: "flex", alignItems: "center", justifyContent: "center" }}><TrendingUpIcon sx={{ fontSize: 18, color: COLORS.secondary }} /></Box>
                     <Box>
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>Day-wise Progress</Typography>
                       <Typography variant="caption" sx={{ color: "#64748B" }}>Completion % per study day</Typography>
@@ -665,7 +677,7 @@ function App() {
         {plan.length > 0 && (
           <Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-              <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.primary}12`, border: `1px solid ${COLORS.primary}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.9rem" }}>📅</Box>
+              <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.primary}12`, border: `1px solid ${COLORS.primary}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><CalendarTodayIcon sx={{ fontSize: 18, color: COLORS.primary }} /></Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0F172A" }}>
                 Your Study Plan <Typography component="span" variant="caption" sx={{ color: "#64748B", fontWeight: 500 }}>({days} days)</Typography>
               </Typography>
@@ -717,7 +729,7 @@ function App() {
                               textTransform: "none", fontWeight: 600, flexShrink: 0,
                               "&:hover": { background: `${COLORS.primary}08`, borderColor: COLORS.primary },
                             }}>
-                            🧠 Smart Plan
+                            Smart Plan
                           </Button>
                         </Box>
                       </AccordionSummary>
@@ -750,7 +762,7 @@ function App() {
                                 }
                                 secondary={
                                   <Box component="span">
-                                    <Typography variant="caption" sx={{ color: "#94A3B8" }}>⏱️ {topic.hours}h • Click to mark complete</Typography>
+                                    <Typography variant="caption" sx={{ color: "#94A3B8" }}>{topic.hours}h • Click to mark complete</Typography>
                                     <ResourcePanel topicName={topic.name} />
                                   </Box>
                                 }
@@ -805,7 +817,7 @@ function App() {
               display: "flex", alignItems: "center", justifyContent: "center",
               mx: "auto", mb: 3, fontSize: "2rem",
             }}>
-              📚
+              <MenuBookIcon sx={{ fontSize: 36, color: COLORS.primary }} />
             </Box>
             <Typography variant="h6" sx={{ color: "#1E293B", fontWeight: 700, mb: 1 }}>
               No study plan yet
@@ -823,7 +835,7 @@ function App() {
                 px: 3, py: 1.2,
               }}
             >
-              🚀 Generate My Plan
+              Generate My Plan
             </Button>
           </Box>
         )}

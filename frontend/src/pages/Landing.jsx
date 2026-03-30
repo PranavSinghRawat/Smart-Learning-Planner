@@ -166,7 +166,7 @@ export default function Landing({ onGetStarted }) {
           background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})`,
           WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
         }}>
-          📚 Smart Learning Planner
+          Smart Learning Planner
         </Typography>
         <Button variant="outlined" onClick={onGetStarted}
           sx={{
@@ -187,7 +187,7 @@ export default function Landing({ onGetStarted }) {
             transition: "opacity 0.9s ease, transform 0.9s ease",
           }}>
             <Chip
-              label="🤖 Groq LLaMA 3.3 + LSTM Deep Learning"
+              label="Groq LLaMA 3.3 + LSTM Deep Learning"
               size="small"
               sx={{
                 background: `${C.primary}18`, color: C.secondary,

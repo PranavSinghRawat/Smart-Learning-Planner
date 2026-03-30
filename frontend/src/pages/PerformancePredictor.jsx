@@ -9,15 +9,21 @@ import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import TrendingFlatIcon from "@mui/icons-material/TrendingFlat";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import AutoGraphIcon from "@mui/icons-material/AutoGraph";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import StorageIcon from "@mui/icons-material/Storage";
+import ScienceIcon from "@mui/icons-material/Science";
+import ViewListIcon from "@mui/icons-material/ViewList";
 
 const C = { primary: "#0F766E", secondary: "#06B6D4" };
 const ML_URL = import.meta.env.VITE_ML_URL || "http://localhost:5002";
 const API = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
 const STATUS_CONFIG = {
-  "On Track":        { color: "#10B981", bg: "#F0FDF4", border: "#A7F3D0", icon: <TrendingUpIcon />,   emoji: "✅" },
-  "At Risk":         { color: "#F59E0B", bg: "#FFFBEB", border: "#FDE68A", icon: <TrendingFlatIcon />, emoji: "⚠️" },
-  "Needs Attention": { color: "#EF4444", bg: "#FFF5F5", border: "#FECACA", icon: <TrendingDownIcon />, emoji: "🚨" },
+  "On Track":        { color: "#10B981", bg: "#F0FDF4", border: "#A7F3D0", icon: <TrendingUpIcon />,   emoji: "" },
+  "At Risk":         { color: "#F59E0B", bg: "#FFFBEB", border: "#FDE68A", icon: <TrendingFlatIcon />, emoji: "" },
+  "Needs Attention": { color: "#EF4444", bg: "#FFF5F5", border: "#FECACA", icon: <TrendingDownIcon />, emoji: "" },
 };
 
 function generateSyntheticScores(exams) {
@@ -126,9 +132,9 @@ export default function PerformancePredictor({ userId, token }) {
 
   const status = result ? STATUS_CONFIG[result.status] : null;
   const sourceChip = {
-    real:      { label: `📊 Live Data (${realScoreCount} days)`, bg: "#D1FAE5", color: "#065F46" },
-    synthetic: { label: "🤖 From Exam Data",                     bg: "#EFF6FF", color: "#1D4ED8" },
-    demo:      { label: "📋 Demo Mode",                          bg: "#FEF3C7", color: "#92400E" },
+    real:      { label: `Live Data (${realScoreCount} days)`, bg: "#D1FAE5", color: "#065F46" },
+    synthetic: { label: "From Exam Data",                     bg: "#EFF6FF", color: "#1D4ED8" },
+    demo:      { label: "Demo Mode",                          bg: "#FEF3C7", color: "#92400E" },
   }[dataSource];
 
   return (
@@ -260,7 +266,7 @@ export default function PerformancePredictor({ userId, token }) {
                     border: "2px dashed #CBD5E1",
                     transition: "height 0.5s cubic-bezier(0.4,0,0.2,1)",
                   }} />
-                  <Typography sx={{ fontSize: "0.6rem", color: C.primary, fontWeight: 800 }}>D8 🔮</Typography>
+                  <Typography sx={{ fontSize: "0.6rem", color: C.primary, fontWeight: 800 }}>D8</Typography>
                 </Box>
               </Box>
             </Box>
@@ -319,7 +325,7 @@ export default function PerformancePredictor({ userId, token }) {
                     <CircularProgress size={18} sx={{ color: "#fff" }} />
                     <span>Analyzing sequence...</span>
                   </Box>
-                : "🔮 Predict Day 8 Performance"
+                : "Predict Day 8 Performance"
               }
             </Button>
           </CardContent>
@@ -334,7 +340,7 @@ export default function PerformancePredictor({ userId, token }) {
           <Box sx={{ px: 3, py: 2.5, borderBottom: `1px solid ${status.border}`, display: "flex", alignItems: "center", gap: 2 }}>
             <Box sx={{ color: status.color, display: "flex" }}>{status.icon}</Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: status.color }}>
-              {status.emoji} {result.status}
+              {result.status}
             </Typography>
           </Box>
           <CardContent sx={{ p: 3 }}>
@@ -365,7 +371,7 @@ export default function PerformancePredictor({ userId, token }) {
               <Grid item xs={12} sm={4}>
                 <Box sx={{ p: 2.5, background: "#fff", borderRadius: 2.5, border: `1px solid ${status.border}`, height: "100%", display: "flex", alignItems: "center" }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: "#1E293B", lineHeight: 1.6 }}>
-                    💡 {result.message}
+                    {result.message}
                   </Typography>
                 </Box>
               </Grid>
@@ -375,7 +381,7 @@ export default function PerformancePredictor({ userId, token }) {
 
             <Box sx={{ p: 2.5, background: "#fff", borderRadius: 2.5, border: "1px solid #E2E8F0" }}>
               <Typography variant="caption" sx={{ fontWeight: 700, color: "#374151", display: "block", mb: 1.5 }}>
-                🧠 LSTM Architecture (PyTorch)
+                LSTM Architecture (PyTorch)
               </Typography>
 
               {/* Architecture string */}

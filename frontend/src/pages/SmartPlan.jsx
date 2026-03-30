@@ -69,14 +69,14 @@ export default function SmartPlan({ token, userId, dayContext, onClearDay }) {
             display: "flex", alignItems: "center", justifyContent: "center",
             mx: "auto", mb: 3, fontSize: "2rem",
           }}>
-            🧠
+            <PsychologyIcon sx={{ fontSize: 36, color: C.primary }} />
           </Box>
           <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B", mb: 1 }}>
             No day selected yet
           </Typography>
           <Typography variant="body2" sx={{ color: "#64748B", maxWidth: 380, mx: "auto", lineHeight: 1.7 }}>
             Go to Study Planner, generate a plan, then click the
-            <Box component="span" sx={{ color: C.primary, fontWeight: 600 }}> 🧠 Smart Plan </Box>
+            <Box component="span" sx={{ color: C.primary, fontWeight: 600 }}> Smart Plan </Box>
             button on any day card.
           </Typography>
         </Box>
@@ -218,7 +218,7 @@ export default function SmartPlan({ token, userId, dayContext, onClearDay }) {
                         </Typography>
                         {slot.tip && (
                           <Typography variant="caption" sx={{ color: "#64748B", display: "block" }}>
-                            💡 {slot.tip}
+                            {slot.tip}
                           </Typography>
                         )}
                       </Box>
@@ -241,7 +241,7 @@ export default function SmartPlan({ token, userId, dayContext, onClearDay }) {
             <Card sx={{ mb: 3, borderRadius: 3, border: "1px solid #E2E8F0", overflow: "hidden" }}>
               <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #F1F5F9" }}>
                 <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B", fontSize: "1rem" }}>
-                  📚 Topic Breakdown
+                  Topic Breakdown
                 </Typography>
               </Box>
               <Box sx={{ p: 3 }}>
@@ -277,7 +277,7 @@ export default function SmartPlan({ token, userId, dayContext, onClearDay }) {
             <Card sx={{ borderRadius: 3, background: "#FFFBEB", border: "1px solid #FDE68A", overflow: "hidden" }}>
               <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #FEF3C7" }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#92400E" }}>
-                  ⚡ Pro Tips for Today
+                  Pro Tips for Today
                 </Typography>
               </Box>
               <Box sx={{ p: 3 }}>

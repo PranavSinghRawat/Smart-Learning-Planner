@@ -7,6 +7,10 @@ import { Visibility, VisibilityOff } from '@mui/icons-material';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
+import SmartToyIcon from "@mui/icons-material/SmartToy";
+import PsychologyIcon from "@mui/icons-material/Psychology";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import LockIcon from "@mui/icons-material/Lock";
 
 const API_URL = import.meta.env.VITE_API_URL;
 const C = { primary: '#0F766E', secondary: '#06B6D4' };
@@ -145,22 +149,21 @@ function Auth({ onLoginSuccess }) {
           fontWeight: 900, color: '#fff', mb: 2, lineHeight: 1.2,
           fontSize: '2.8rem',
         }}>
-          📚 Smart<br />Learning<br />Planner
+          Smart Learning Planner
         </Typography>
         <Typography sx={{ color: 'rgba(255,255,255,0.5)', mb: 4, lineHeight: 1.8, maxWidth: 340 }}>
           AI-powered study plans, LSTM performance prediction, and hour-by-hour daily strategies.
         </Typography>
         {[
-          { icon: '🤖', text: 'Groq LLaMA 3.3 study plans' },
-          { icon: '🧠', text: 'LSTM neural network predictor' },
-          { icon: '📊', text: 'Real-time progress analytics' },
+          { icon: <SmartToyIcon sx={{ fontSize: 18, color: C.primary }} />, text: 'Groq LLaMA 3.3 study plans' },
+          { icon: <PsychologyIcon sx={{ fontSize: 18, color: C.primary }} />, text: 'LSTM neural network predictor' },
+          { icon: <BarChartIcon sx={{ fontSize: 18, color: C.primary }} />, text: 'Real-time progress analytics' },
         ].map(f => (
           <Box key={f.text} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
             <Box sx={{
               width: 36, height: 36, borderRadius: 2,
               background: `${C.primary}25`, border: `1px solid ${C.primary}40`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '1rem',
             }}>{f.icon}</Box>
             <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem' }}>{f.text}</Typography>
           </Box>
@@ -197,7 +200,7 @@ function Auth({ onLoginSuccess }) {
                 background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})`,
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
               }}>
-                📚 Smart Learning Planner
+                Smart Learning Planner
               </Typography>
             </Box>
 
@@ -360,7 +363,7 @@ function Auth({ onLoginSuccess }) {
 
             <Divider sx={{ my: 3 }}>
               <Typography variant="caption" sx={{ color: '#94A3B8', px: 1 }}>
-                🔐 Secured with JWT
+                Secured with JWT
               </Typography>
             </Divider>
 
