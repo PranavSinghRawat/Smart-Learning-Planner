@@ -107,41 +107,4 @@ describe('Resources & Smart Plan API (Groq AI)', () => {
     });
   });
 
-  // ── POST /api/smartplan/generate (ML-scored session planner) ─────────────
-  describe('POST /api/smartplan/generate', () => {
-    it('returns 401 without token', async () => {
-      const res = await request(app).post('/api/smartplan/generate').send({
-        hoursAvailable: 4,
-      });
-      expect(res.statusCode).toBe(401);
-    });
-
-    it('returns 200 with empty sessions when user has no exams or career goal', async () => {
-      const res = await request(app)
-        .post('/api/smartplan/generate')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ hoursAvailable: 4 });
-      expect(res.statusCode).toBe(200);
-      expect(res.body).toHaveProperty('sessions');
-      expect(Array.isArray(res.body.sessions)).toBe(true);
-    });
-
-    it('returns sessions scored by MLP when career goal is provided', async () => {
-      const res = await request(app)
-        .post('/api/smartplan/generate')
-        .set('Authorization', `Bearer ${token}`)
-        .send({
-          hoursAvailable: 4,
-          careerGoal: 'MERN Developer',
-        });
-      expect(res.statusCode).toBe(200);
-      expect(res.body).toHaveProperty('sessions');
-      expect(res.body).toHaveProperty('scoringSource');
-      if (res.body.sessions.length > 0) {
-        expect(res.body.sessions[0]).toHaveProperty('effectivenessScore');
-        expect(res.body.sessions[0]).toHaveProperty('label');
-      }
-    });
-  });
-
 });

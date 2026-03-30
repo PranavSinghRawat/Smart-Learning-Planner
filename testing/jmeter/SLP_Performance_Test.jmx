@@ -5,8 +5,8 @@
       <stringProp name="TestPlan.comments">Performance test for SLP backend APIs.
 Scenarios:
   1. Login endpoint under 50 concurrent users
-  2. GET /api/exams under load
-  3. POST /api/exams under load
+  2. GET /api/exams under 30 concurrent users
+  3. GET /api/health smoke test
 Run: jmeter -n -t SLP_Performance_Test.jmx -l results.jtl -e -o report/</stringProp>
       <boolProp name="TestPlan.functional_mode">false</boolProp>
       <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
@@ -62,7 +62,7 @@ Run: jmeter -n -t SLP_Performance_Test.jmx -l results.jtl -e -o report/</stringP
           <elementProp name="HTTPsampler.Arguments" elementType="Arguments">
             <collectionProp name="Arguments.arguments">
               <elementProp name="" elementType="HTTPArgument">
-                <stringProp name="Argument.value">{"email":"testuser@slp.com","password":"password123"}</stringProp>
+                <stringProp name="Argument.value">{"username":"testuser","password":"password123"}</stringProp>
                 <stringProp name="Argument.metadata">=</stringProp>
               </elementProp>
             </collectionProp>

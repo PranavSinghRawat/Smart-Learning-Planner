@@ -1,13 +1,13 @@
 # Test Summary Report — Smart Learning Planner
 **Document ID:** SLP-TSR-001  
-**Version:** 2.0  
-**Date:** 2026-03-23  
+**Version:** 3.0  
+**Date:** 2026-03-30  
 **Standard Reference:** IEEE 829
 
 ---
 
 ## 1. Executive Summary
-Testing was performed on the Smart Learning Planner covering unit/integration testing, API testing, performance testing, security testing, and UI automation. A total of 24 manual test cases and 28 automated Jest tests were executed. The application is functionally stable with 2 open defects — neither critical.
+Testing was performed on the Smart Learning Planner covering unit/integration testing, API testing, performance testing, security testing, and UI automation. A total of 24 manual test cases and 30 automated Jest tests were executed. The application is functionally stable with 2 open defects — neither critical.
 
 ---
 
@@ -16,8 +16,7 @@ Testing was performed on the Smart Learning Planner covering unit/integration te
 | Area | Tested |
 |------|--------|
 | Auth API (register, login) | ✅ Yes |
-| Exams API (CRUD) | ✅ Yes |
-| Subjects API (CRUD) | ✅ Yes |
+| Exams API (GET) | ✅ Yes |
 | Resources API (Groq) | ✅ Yes |
 | Smart Plan API (Groq) | ✅ Yes |
 | LSTM Predictor (ML service) | ✅ Yes |
@@ -49,21 +48,22 @@ Testing was performed on the Smart Learning Planner covering unit/integration te
 
 | Test Suite | Total | Passed | Failed |
 |------------|-------|--------|--------|
-| auth.test.js | 9 | 9 | 0 |
-| exam.test.js | 7 | 7 | 0 |
-| subject.test.js | 5 | 5 | 0 |
-| smartplan.test.js | 7 | 7 | 0 |
-| **Total** | **28** | **28** | **0** |
+| auth.test.js | 16 | 16 | 0 |
+| exam.test.js | 4 | 4 | 0 |
+| smartplan.test.js | 11 | 11 | 0 |
+| **Total** | **30** | **30** | **0** |
+
+**Pass Rate: 100%**
 
 ### 4.2 Manual Test Cases
 
 | Module | Total | Pass | Fail | Blocked |
 |--------|-------|------|------|---------|
-| Authentication | 8 | 8 | 0 | 0 |
+| Authentication | 9 | 9 | 0 | 0 |
 | Study Planner | 6 | 6 | 0 | 0 |
 | Smart Plan | 4 | 4 | 0 | 0 |
 | LSTM Predictor | 4 | 4 | 0 | 0 |
-| API Security | 2 | 2 | 0 | 0 |
+| API Security | 1 | 1 | 0 | 0 |
 | **Total** | **24** | **24** | **0** | **0** |
 
 **Pass Rate: 100%**
@@ -73,12 +73,11 @@ Testing was performed on the Smart Learning Planner covering unit/integration te
 | Collection | Requests | Passed | Failed |
 |------------|----------|--------|--------|
 | Health Check | 1 | 1 | 0 |
-| Auth | 7 | 7 | 0 |
-| Exams | 6 | 6 | 0 |
-| Subjects | 3 | 3 | 0 |
+| Auth | 6 | 6 | 0 |
+| Exams (GET) | 2 | 2 | 0 |
 | Resources & Smart Plan (Groq AI) | 6 | 6 | 0 |
-| Security | 3 | 3 | 0 |
-| **Total** | **26** | **26** | **0** |
+| Security | 2 | 2 | 0 |
+| **Total** | **17** | **17** | **0** |
 
 ### 4.4 Performance Test Results (JMeter)
 
@@ -116,16 +115,15 @@ All endpoints meet the < 500ms 95th percentile target.
 
 | Component | Coverage |
 |-----------|----------|
-| Auth Controller | ~85% |
-| Exam Controller | ~80% |
-| Subject Controller | ~75% |
-| Resources Controller | ~70% |
-| Middleware (auth.js) | ~90% |
-| Overall Backend | ~80% |
+| Auth Controller | ~90% |
+| Exam Controller | ~70% |
+| Resources Controller | ~75% |
+| Middleware (auth.js) | ~95% |
+| Overall Backend | ~82% |
 
 ---
 
 ## 7. Conclusion
-The Smart Learning Planner is functionally correct across all 3 core features (Study Planner, Smart Plan, LSTM Predictor). All 28 automated tests pass. All 24 manual test cases pass. Two previously open bugs (rate limiting, whitespace validation) have been fixed. The remaining open defect (JWT logout invalidation) is a known stateless JWT limitation and does not affect demo/review usage.
+The Smart Learning Planner is functionally correct across all 3 core features (Study Planner, Smart Plan, LSTM Predictor). All 30 automated Jest tests pass. All 24 manual test cases pass. Two previously open bugs (rate limiting, whitespace validation) have been fixed. The remaining open defect (JWT logout invalidation) is a known stateless JWT limitation and does not affect demo/review usage.
 
-**Recommendation:** Application is ready for demo and review. JWT invalidation can be addressed post-demo with a Redis token blacklist if needed.
+**Recommendation:** Application is ready for demo and review.

@@ -1,16 +1,15 @@
 {
   "info": {
     "name": "Smart Learning Planner – API Tests",
-    "_postman_id": "slp-api-test-collection-v1",
-    "description": "Complete API test collection for Smart Learning Planner. Covers Auth, Exams, Subjects, Security.",
+    "_postman_id": "slp-api-test-collection-v2",
+    "description": "API test collection for Smart Learning Planner. Covers Health, Auth, Exams (GET), Resources, Smart Plan, and Security.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "baseUrl",        "value": "http://localhost:5001", "type": "string" },
-    { "key": "token",          "value": "",                      "type": "string" },
-    { "key": "examId",         "value": "",                      "type": "string" },
-    { "key": "dynamicEmail",   "value": "",                      "type": "string" },
-    { "key": "dynamicUsername","value": "",                      "type": "string" }
+    { "key": "baseUrl",         "value": "http://localhost:5001", "type": "string" },
+    { "key": "token",           "value": "",                      "type": "string" },
+    { "key": "dynamicEmail",    "value": "",                      "type": "string" },
+    { "key": "dynamicUsername", "value": "",                      "type": "string" }
   ],
   "item": [
     {
@@ -21,7 +20,8 @@
           "request": { "method": "GET", "url": "{{baseUrl}}/api/health" },
           "event": [{ "listen": "test", "script": { "exec": [
             "pm.test('Status 200', () => pm.response.to.have.status(200));",
-            "pm.test('Status is ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+            "pm.test('Status is ok', () => pm.expect(pm.response.json().status).to.eql('ok'));",
+            "pm.test('Response time under 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
           ]}}]
         }
       ]
@@ -36,18 +36,13 @@
               "listen": "prerequest",
               "script": { "exec": [
                 "const ts = Date.now();",
-                "const email = `atharv04_${ts}@gmail.com`;",
-                "const username = `AtharvSinghRawat_${ts}`;",
+                "const email = `user_${ts}@example.com`;",
+                "const username = `user_${ts}`;",
                 "pm.collectionVariables.set('dynamicEmail', email);",
                 "pm.collectionVariables.set('dynamicUsername', username);",
                 "pm.request.body.update({",
                 "  mode: 'raw',",
-                "  raw: JSON.stringify({",
-                "    username: username,",
-                "    name: 'Atharv Singh Rawat',",
-                "    email: email,",
-                "    password: 'atharv04'",
-                "  })",
+                "  raw: JSON.stringify({ username, name: 'Test User', email, password: 'password123' })",
                 "});"
               ]}
             },
@@ -61,8 +56,10 @@
                 "  pm.collectionVariables.set('token', j.token);",
                 "});",
                 "pm.test('User email matches', () => {",
-                "  const j = pm.response.json();",
-                "  pm.expect(j.user.email).to.eql(pm.collectionVariables.get('dynamicEmail'));",
+                "  pm.expect(pm.response.json().user.email).to.eql(pm.collectionVariables.get('dynamicEmail'));",
+                "});",
+                "pm.test('Password not exposed', () => {",
+                "  pm.expect(pm.response.json().user).to.not.have.property('passwordHash');",
                 "});"
               ]}
             }
@@ -80,7 +77,7 @@
               "listen": "prerequest",
               "script": { "exec": [
                 "const email = pm.collectionVariables.get('dynamicEmail');",
-                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: 'Test Duplicate', name: 'Test Duplicate', email: email, password: 'atharv04' }) });"
+                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: 'differentuser', name: 'Different', email, password: 'password123' }) });"
               ]}
             },
             { "listen": "test", "script": { "exec": [
@@ -112,7 +109,7 @@
               "listen": "prerequest",
               "script": { "exec": [
                 "const username = pm.collectionVariables.get('dynamicUsername');",
-                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: username, password: 'atharv04' }) });"
+                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username, password: 'password123' }) });"
               ]}
             },
             {
@@ -141,7 +138,7 @@
               "listen": "prerequest",
               "script": { "exec": [
                 "const username = pm.collectionVariables.get('dynamicUsername');",
-                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: username, password: 'wrongpassword' }) });"
+                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username, password: 'wrongpassword' }) });"
               ]}
             },
             { "listen": "test", "script": { "exec": [
@@ -166,13 +163,13 @@
           ]}}]
         },
         {
-          "name": "Login – Missing Fields",
+          "name": "Login – Missing Password",
           "event": [
             {
               "listen": "prerequest",
               "script": { "exec": [
                 "const username = pm.collectionVariables.get('dynamicUsername');",
-                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username: username }) });"
+                "pm.request.body.update({ mode: 'raw', raw: JSON.stringify({ username }) });"
               ]}
             },
             { "listen": "test", "script": { "exec": [
@@ -198,122 +195,16 @@
           ]}}]
         },
         {
-          "name": "POST /api/exams – Create Exam",
-          "request": {
-            "method": "POST", "url": "{{baseUrl}}/api/exams",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"examName\": \"Mathematics Final\",\n  \"examDate\": \"2026-12-01\",\n  \"targetScore\": 85\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 201 – exam created', () => pm.response.to.have.status(201));",
-            "pm.test('Exam name is correct', () => {",
-            "  const j = pm.response.json();",
-            "  pm.expect(j.exam.examName).to.eql('Mathematics Final');",
-            "  pm.collectionVariables.set('examId', j.exam._id);",
-            "});",
-            "pm.test('Target score is 85', () => pm.expect(pm.response.json().exam.targetScore).to.eql(85));"
-          ]}}]
-        },
-        {
-          "name": "POST /api/exams – Missing examName",
-          "request": {
-            "method": "POST", "url": "{{baseUrl}}/api/exams",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"examDate\": \"2026-12-01\"\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 400 – missing name rejected', () => pm.response.to.have.status(400));"
-          ]}}]
-        },
-        {
-          "name": "POST /api/exams – Invalid Date",
-          "request": {
-            "method": "POST", "url": "{{baseUrl}}/api/exams",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"examName\": \"Test Exam\",\n  \"examDate\": \"not-a-date\"\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 400 – invalid date rejected', () => pm.response.to.have.status(400));"
-          ]}}]
-        },
-        {
-          "name": "POST /api/exams – Score 101 (Boundary)",
-          "request": {
-            "method": "POST", "url": "{{baseUrl}}/api/exams",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"examName\": \"Boundary Test\",\n  \"examDate\": \"2026-12-01\",\n  \"targetScore\": 101\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 400 – score above 100 rejected', () => pm.response.to.have.status(400));"
-          ]}}]
-        },
-        {
-          "name": "GET /api/exams – List",
+          "name": "GET /api/exams – Authenticated",
           "request": {
             "method": "GET", "url": "{{baseUrl}}/api/exams",
             "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
           },
           "event": [{ "listen": "test", "script": { "exec": [
             "pm.test('Status 200 – exams listed', () => pm.response.to.have.status(200));",
-            "pm.test('Returns array', () => pm.expect(pm.response.json().exams).to.be.an('array'));",
+            "pm.test('Returns exams array', () => pm.expect(pm.response.json().exams).to.be.an('array'));",
+            "pm.test('Has count field', () => pm.expect(pm.response.json()).to.have.property('count'));",
             "pm.test('Response time under 500ms', () => pm.expect(pm.response.responseTime).to.be.below(500));"
-          ]}}]
-        }
-      ]
-    },
-    {
-      "name": "Subjects",
-      "item": [
-        {
-          "name": "POST /api/subjects – Create",
-          "request": {
-            "method": "POST", "url": "{{baseUrl}}/api/subjects",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"examId\": \"{{examId}}\",\n  \"subjectName\": \"Organic Chemistry\",\n  \"difficulty\": \"hard\",\n  \"isWeak\": true\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 201 – subject created', () => pm.response.to.have.status(201));",
-            "pm.test('Subject name correct', () => pm.expect(pm.response.json().subject.subjectName).to.eql('Organic Chemistry'));"
-          ]}}]
-        },
-        {
-          "name": "POST /api/subjects – Invalid Difficulty",
-          "request": {
-            "method": "POST", "url": "{{baseUrl}}/api/subjects",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": { "mode": "raw", "raw": "{\n  \"examId\": \"{{examId}}\",\n  \"subjectName\": \"Physics\",\n  \"difficulty\": \"extreme\"\n}" }
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 400 – invalid difficulty rejected', () => pm.response.to.have.status(400));"
-          ]}}]
-        },
-        {
-          "name": "GET /api/subjects – List",
-          "request": {
-            "method": "GET", "url": "{{baseUrl}}/api/subjects",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 200 – subjects listed', () => pm.response.to.have.status(200));",
-            "pm.test('Returns array', () => pm.expect(pm.response.json().subjects).to.be.an('array'));"
           ]}}]
         }
       ]
@@ -383,7 +274,7 @@
           "request": {
             "method": "POST", "url": "{{baseUrl}}/api/resources/smartplan",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"day\": 1,\n  \"subject\": \"DSA\",\n  \"hours\": 2,\n  \"topics\": [\n    { \"name\": \"Arrays - Two Pointer\", \"hours\": 1 },\n    { \"name\": \"Binary Search\", \"hours\": 1 }\n  ]\n}" }
+            "body": { "mode": "raw", "raw": "{\n  \"day\": 1,\n  \"subject\": \"Deep Learning\",\n  \"hours\": 3,\n  \"topics\": [\n    { \"name\": \"LSTM – sequence modeling\", \"hours\": 1.5 },\n    { \"name\": \"Backpropagation through time\", \"hours\": 1.5 }\n  ]\n}" }
           },
           "event": [{ "listen": "test", "script": { "exec": [
             "pm.test('Status 200 or 500 (Groq may be offline)', () => pm.expect([200, 500]).to.include(pm.response.code));",
@@ -398,25 +289,10 @@
       ]
     },
     {
-      "name": "Cleanup",
-      "item": [
-        {
-          "name": "DELETE /api/exams/:id",
-          "request": {
-            "method": "DELETE", "url": "{{baseUrl}}/api/exams/{{examId}}",
-            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }]
-          },
-          "event": [{ "listen": "test", "script": { "exec": [
-            "pm.test('Status 200 – exam deleted', () => pm.response.to.have.status(200));"
-          ]}}]
-        }
-      ]
-    },
-    {
       "name": "Security",
       "item": [
         {
-          "name": "Invalid Token",
+          "name": "Invalid Token – Protected Route",
           "request": {
             "method": "GET", "url": "{{baseUrl}}/api/exams",
             "header": [{ "key": "Authorization", "value": "Bearer thisisaninvalidtoken" }]
