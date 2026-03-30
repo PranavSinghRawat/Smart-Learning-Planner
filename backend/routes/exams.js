@@ -18,6 +18,10 @@ router.post(
       .optional()
       .isFloat({ min: 0, max: 100 })
       .withMessage('Target score must be between 0 and 100'),
+    body('difficulty')
+      .optional()
+      .isIn(['easy', 'medium', 'hard'])
+      .withMessage('Difficulty must be easy, medium, or hard'),
   ],
   createExam
 );

@@ -32,6 +32,11 @@ const ExamSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    difficulty: {
+      type: String,
+      enum: ['easy', 'medium', 'hard'],
+      default: 'medium',
+    },
   },
   { timestamps: true }
 );
