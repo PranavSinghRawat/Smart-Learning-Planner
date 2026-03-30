@@ -17,7 +17,7 @@ const createExam = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { examName, examDate, targetScore, subjects, weakTopics } = req.body;
+  const { examName, examDate, targetScore, subjects, weakTopics, difficulty } = req.body;
 
   try {
     const exam = await Exam.create({
@@ -27,6 +27,7 @@ const createExam = async (req, res) => {
       targetScore: targetScore ?? 80,
       subjects: subjects || [],
       weakTopics: weakTopics || [],
+      difficulty: difficulty || 'medium',
     });
 
     res.status(201).json({ message: 'Exam created successfully.', exam });

@@ -3,44 +3,61 @@ const app = require('../server');
 
 let token;
 
-const getAuthToken = async () => {
+const registerAndLogin = async (suffix = '') => {
   await request(app).post('/api/auth/register').send({
-    username: 'examuser',
+    username: `examuser${suffix}`,
     name: 'Exam User',
-    email: 'examuser@example.com',
+    email: `examuser${suffix}@example.com`,
     password: 'password123',
   });
   const res = await request(app).post('/api/auth/login').send({
-    username: 'examuser',
-    password: 'password123',
+    username: `examuser${suffix}`, password: 'password123',
   });
   return res.body.token;
 };
 
 describe('Exams API', () => {
+
   beforeEach(async () => {
-    token = await getAuthToken();
+    token = await registerAndLogin();
   });
 
   describe('POST /api/exams', () => {
-    it('should return 401 if no token is provided', async () => {
+    it('creates an exam with all valid fields', async () => {
+      const res = await request(app)
+        .post('/api/exams')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          examName: 'Deep Learning Final',
+          examDate: '2026-12-01',
+          targetScore: 85,
+          difficulty: 'hard',
+          weakTopics: ['LSTM', 'Backpropagation'],
+        });
+      expect(res.statusCode).toBe(201);
+      expect(res.body.exam).toHaveProperty('examName', 'Deep Learning Final');
+      expect(res.body.exam).toHaveProperty('difficulty', 'hard');
+      expect(res.body.exam.weakTopics).toContain('LSTM');
+    });
+
+    it('creates an exam with only required fields (defaults apply)', async () => {
+      const res = await request(app)
+        .post('/api/exams')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ examName: 'Math Final', examDate: '2026-06-01' });
+      expect(res.statusCode).toBe(201);
+      expect(res.body.exam.targetScore).toBe(80);   // default
+      expect(res.body.exam.difficulty).toBe('medium'); // default
+    });
+
+    it('returns 401 if no token is provided', async () => {
       const res = await request(app).post('/api/exams').send({
-        examName: 'Math Final',
-        examDate: '2026-06-01',
+        examName: 'Math Final', examDate: '2026-06-01',
       });
       expect(res.statusCode).toBe(401);
     });
 
-    it('should create an exam for authenticated user', async () => {
-      const res = await request(app)
-        .post('/api/exams')
-        .set('Authorization', `Bearer ${token}`)
-        .send({ examName: 'Math Final', examDate: '2026-06-01', targetScore: 90 });
-      expect(res.statusCode).toBe(201);
-      expect(res.body.exam).toHaveProperty('examName', 'Math Final');
-    });
-
-    it('should return 400 if examName is missing', async () => {
+    it('returns 400 if examName is missing', async () => {
       const res = await request(app)
         .post('/api/exams')
         .set('Authorization', `Bearer ${token}`)
@@ -48,7 +65,7 @@ describe('Exams API', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('should return 400 if examDate is invalid', async () => {
+    it('returns 400 if examDate is invalid format', async () => {
       const res = await request(app)
         .post('/api/exams')
         .set('Authorization', `Bearer ${token}`)
@@ -56,7 +73,7 @@ describe('Exams API', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('should return 400 if targetScore exceeds 100 (boundary)', async () => {
+    it('returns 400 if targetScore exceeds 100 (boundary)', async () => {
       const res = await request(app)
         .post('/api/exams')
         .set('Authorization', `Bearer ${token}`)
@@ -64,7 +81,7 @@ describe('Exams API', () => {
       expect(res.statusCode).toBe(400);
     });
 
-    it('should accept targetScore of 0 (boundary)', async () => {
+    it('accepts targetScore of 0 (lower boundary)', async () => {
       const res = await request(app)
         .post('/api/exams')
         .set('Authorization', `Bearer ${token}`)
@@ -72,10 +89,26 @@ describe('Exams API', () => {
       expect(res.statusCode).toBe(201);
       expect(res.body.exam.targetScore).toBe(0);
     });
+
+    it('returns 400 if difficulty is invalid value', async () => {
+      const res = await request(app)
+        .post('/api/exams')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ examName: 'Test', examDate: '2026-06-01', difficulty: 'extreme' });
+      expect(res.statusCode).toBe(400);
+    });
   });
 
   describe('GET /api/exams', () => {
-    it('should return an array of exams for authenticated user', async () => {
+    it('returns empty array when user has no exams', async () => {
+      const res = await request(app)
+        .get('/api/exams')
+        .set('Authorization', `Bearer ${token}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.exams).toHaveLength(0);
+    });
+
+    it('returns exams belonging to authenticated user', async () => {
       await request(app)
         .post('/api/exams')
         .set('Authorization', `Bearer ${token}`)
@@ -85,18 +118,34 @@ describe('Exams API', () => {
         .get('/api/exams')
         .set('Authorization', `Bearer ${token}`);
       expect(res.statusCode).toBe(200);
-      expect(Array.isArray(res.body.exams)).toBe(true);
       expect(res.body.exams.length).toBeGreaterThan(0);
+      expect(res.body).toHaveProperty('count');
     });
 
-    it('should return 401 without token', async () => {
+    it('does not return another user\'s exams', async () => {
+      // Create exam for user1
+      await request(app)
+        .post('/api/exams')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ examName: 'Private Exam', examDate: '2026-07-10' });
+
+      // Login as user2
+      const token2 = await registerAndLogin('2');
+      const res = await request(app)
+        .get('/api/exams')
+        .set('Authorization', `Bearer ${token2}`);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.exams).toHaveLength(0);
+    });
+
+    it('returns 401 without token', async () => {
       const res = await request(app).get('/api/exams');
       expect(res.statusCode).toBe(401);
     });
   });
 
   describe('DELETE /api/exams/:id', () => {
-    it('should delete an exam belonging to the user', async () => {
+    it('deletes an exam belonging to the user', async () => {
       const createRes = await request(app)
         .post('/api/exams')
         .set('Authorization', `Bearer ${token}`)
@@ -107,6 +156,32 @@ describe('Exams API', () => {
         .delete(`/api/exams/${examId}`)
         .set('Authorization', `Bearer ${token}`);
       expect(deleteRes.statusCode).toBe(200);
+
+      // Verify it's gone
+      const getRes = await request(app)
+        .get('/api/exams')
+        .set('Authorization', `Bearer ${token}`);
+      expect(getRes.body.exams.find(e => e._id === examId)).toBeUndefined();
+    });
+
+    it('returns 404 when deleting another user\'s exam', async () => {
+      const createRes = await request(app)
+        .post('/api/exams')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ examName: 'User1 Exam', examDate: '2026-09-01' });
+      const examId = createRes.body.exam._id;
+
+      const token2 = await registerAndLogin('3');
+      const deleteRes = await request(app)
+        .delete(`/api/exams/${examId}`)
+        .set('Authorization', `Bearer ${token2}`);
+      expect(deleteRes.statusCode).toBe(404);
+    });
+
+    it('returns 401 without token', async () => {
+      const res = await request(app).delete('/api/exams/507f1f77bcf86cd799439011');
+      expect(res.statusCode).toBe(401);
     });
   });
+
 });
