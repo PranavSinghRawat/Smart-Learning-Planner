@@ -14,6 +14,9 @@ import numpy as np
 import pickle
 import os
 
+# Must import these so pickle can deserialize the saved LSTM objects
+from lstm_train import LSTMWrapper, LSTMPredictor
+
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}}, supports_credentials=False)
 
