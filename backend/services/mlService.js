@@ -11,7 +11,7 @@ const ML_URL = process.env.ML_SERVICE_URL || 'http://localhost:5002';
  * Used when the Python ML service is unreachable.
  */
 const ruleBasedScore = (session) => {
-  const urgency    = Math.max(0, 1 - session.days_to_exam / 30);
+  const urgency    = Math.max(0, 1 - session.days_until_review / 30);
   const confGap    = Math.max(0, 1 - session.prev_confidence / 5);
   const weight     = session.topic_weight;
   const diffFit    = session.difficulty === 2

@@ -96,12 +96,12 @@ def score():
 
     try:
         features = [[
-            float(s.get("difficulty",      1)),
-            float(s.get("days_to_exam",   15)),
-            float(s.get("past_hours",      0)),
-            float(s.get("prev_confidence", 0)),
-            float(s.get("topic_weight",  0.5)),
-            float(s.get("hours_available", 4)),
+            float(s.get("difficulty",        1)),
+            float(s.get("days_until_review", 15)),
+            float(s.get("past_hours",         0)),
+            float(s.get("prev_confidence",    0)),
+            float(s.get("topic_weight",     0.5)),
+            float(s.get("hours_available",    4)),
         ] for s in sessions]
 
         X = np.array(features)
@@ -113,9 +113,14 @@ def score():
             "scores": scores,
             "model_info": {
                 "type": "MLPRegressor",
+                "task": "Study session priority scoring",
                 "layers": "6 → 64 → 32 → 16 → 1",
                 "activation": "relu",
                 "regularisation": "L2 + early stopping",
+                "features": [
+                    "difficulty", "days_until_review", "past_hours",
+                    "prev_confidence", "topic_weight", "hours_available"
+                ],
             },
         })
 
