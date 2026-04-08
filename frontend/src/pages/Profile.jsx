@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import {
   Box, Card, CardContent, Typography, Grid, LinearProgress,
-  Chip, Divider, Avatar, List, ListItem, ListItemText,
+  Chip, Divider, Avatar, List, ListItem, ListItemText, Button,
 } from "@mui/material";
 import LocalFireDepartmentIcon from "@mui/icons-material/LocalFireDepartment";
 import EmojiEventsIcon from "@mui/icons-material/EmojiEvents";
@@ -39,7 +39,7 @@ function StatCard({ icon, label, value, color, bg }) {
   );
 }
 
-export default function Profile({ userId, username, studyHistory, plan, subject, level, days, hours }) {
+export default function Profile({ userId, username, studyHistory, plan, subject, level, days, hours, onResumeCourse }) {
 
   // ── Compute streak from daily scores ──────────────────────────────────────
   const { streak, longestStreak, dailyScores } = useMemo(() => {
@@ -299,38 +299,78 @@ export default function Profile({ userId, username, studyHistory, plan, subject,
                 </Typography>
               ) : (
                 <List sx={{ p: 0 }}>
-                  {studyHistory.slice(0, 8).map((entry, i) => (
-                    <ListItem key={entry.id} sx={{
-                      px: 3, py: 1.5,
-                      borderBottom: i < Math.min(studyHistory.length, 8) - 1 ? "1px solid #F1F5F9" : "none",
-                      "&:hover": { background: "#F8FAFC" },
-                    }}>
-                      <Box sx={{
-                        width: 36, height: 36, borderRadius: 2, mr: 2, flexShrink: 0,
-                        background: `${C.primary}12`, border: `1px solid ${C.primary}20`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
+                  {studyHistory.slice(0, 8).map((entry, i) => {
+                    const entryTotal     = entry.plan ? entry.plan.reduce((s, d) => s + (d.topics?.length || 0), 0) : 0;
+                    const entryCompleted = entry.plan ? entry.plan.reduce((s, d) => s + (d.topics?.filter(t => t.completed).length || 0), 0) : 0;
+                    const entryPct       = entryTotal > 0 ? Math.round((entryCompleted / entryTotal) * 100) : 0;
+
+                    return (
+                      <ListItem key={entry.id} sx={{
+                        px: 3, py: 2,
+                        borderBottom: i < Math.min(studyHistory.length, 8) - 1 ? "1px solid #F1F5F9" : "none",
+                        "&:hover": { background: "#F8FAFC" },
+                        display: "flex", alignItems: "center", flexWrap: { xs: "wrap", sm: "nowrap" }, gap: 1
                       }}>
-                        <MenuBookIcon sx={{ fontSize: 18, color: C.primary }} />
-                      </Box>
-                      <ListItemText
-                        primary={
-                          <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B" }}>
-                            {entry.subject}
-                          </Typography>
-                        }
-                        secondary={
-                          <Typography variant="caption" sx={{ color: "#94A3B8" }}>
-                            {entry.level} · {entry.days} days · {entry.hours}h/day · Started {entry.createdAt}
-                          </Typography>
-                        }
-                      />
-                      <Chip label={entry.level} size="small" sx={{
-                        background: entry.level === "Beginner" ? "#F0FDF4" : entry.level === "Intermediate" ? "#EFF6FF" : "#F5F3FF",
-                        color: entry.level === "Beginner" ? "#065F46" : entry.level === "Intermediate" ? "#1D4ED8" : "#6D28D9",
-                        fontWeight: 600, fontSize: "0.65rem",
-                      }} />
-                    </ListItem>
-                  ))}
+                        <Box sx={{
+                          width: 36, height: 36, borderRadius: 2, mr: 1, flexShrink: 0,
+                          background: `${C.primary}12`, border: `1px solid ${C.primary}20`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <MenuBookIcon sx={{ fontSize: 18, color: C.primary }} />
+                        </Box>
+                        
+                        <ListItemText
+                          sx={{ flex: 1, minWidth: { xs: "100%", sm: "auto" }, mb: { xs: 1, sm: 0 } }}
+                          primary={
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B" }}>
+                              {entry.subject}
+                            </Typography>
+                          }
+                          secondary={
+                            <Typography variant="caption" sx={{ color: "#94A3B8" }}>
+                              {entry.createdAt} · {entry.days}d · {entry.hours}h/d
+                            </Typography>
+                          }
+                        />
+
+                        {entry.plan && (
+                          <Box sx={{ width: { xs: "100%", sm: 100 }, mr: { sm: 2 }, mb: { xs: 1, sm: 0 } }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 700, color: C.primary, fontSize: "0.6rem" }}>
+                                {entryPct}%
+                              </Typography>
+                            </Box>
+                            <LinearProgress variant="determinate" value={entryPct} sx={{ height: 4, borderRadius: 2, background: "#E2E8F0", "& .MuiLinearProgress-bar": { background: C.primary, borderRadius: 2 } }} />
+                          </Box>
+                        )}
+
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: "auto" }}>
+                          <Chip label={entry.level} size="small" sx={{
+                            background: entry.level === "Beginner" ? "#F0FDF4" : entry.level === "Intermediate" ? "#EFF6FF" : "#F5F3FF",
+                            color: entry.level === "Beginner" ? "#065F46" : entry.level === "Intermediate" ? "#1D4ED8" : "#6D28D9",
+                            fontWeight: 600, fontSize: "0.65rem", height: 20
+                          }} />
+                          <Button 
+                            variant="contained" 
+                            size="small" 
+                            onClick={() => onResumeCourse(entry)}
+                            sx={{ 
+                              textTransform: "none", 
+                              fontWeight: 700, 
+                              fontSize: "0.7rem", 
+                              background: C.primary,
+                              borderRadius: 1.5,
+                              px: 1.5,
+                              minWidth: 70,
+                              "&:hover": { background: C.secondary }
+                            }}
+                          >
+                            Resume
+                          </Button>
+                        </Box>
+                      </ListItem>
+                    );
+                  })}
                 </List>
               )}
             </CardContent>
