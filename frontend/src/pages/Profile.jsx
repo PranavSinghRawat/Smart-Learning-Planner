@@ -1,3 +1,4 @@
+import React, { useMemo } from "react";
 import {
   Box, Card, CardContent, Typography, Grid, LinearProgress,
   Chip, Divider, Avatar, List, ListItem, ListItemText, Button,
@@ -17,6 +18,7 @@ import SchoolIcon from "@mui/icons-material/School";
 import PlayCircleFilledIcon from "@mui/icons-material/PlayCircleFilled";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import StarIcon from "@mui/icons-material/Star";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 const C = { primary: "#0F766E", secondary: "#06B6D4", accent: "#8B5CF6" };
 
@@ -46,7 +48,7 @@ function StatCard({ icon, label, value, color, bg }) {
   );
 }
 
-export default function Profile({ userId, username, studyHistory, plan, subject, level, days, hours, onResumeCourse }) {
+export default function Profile({ userId, username, studyHistory, plan, subject, level, days, hours, onResumeCourse, onDeleteHistory }) {
 
   // ── Compute streak from daily scores ──────────────────────────────────────
   const { streak, longestStreak, dailyScores } = useMemo(() => {
@@ -139,23 +141,29 @@ export default function Profile({ userId, username, studyHistory, plan, subject,
   const activeCourse = studyHistory[0] || null;
 
   return (
-    <Box>
+    <Box sx={{ animation: "fadeIn 0.6s ease-out" }}>
+      <style>{`
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+      
       {/* Page header */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 4 }}>
-        <Box sx={{
-          width: 48, height: 48, borderRadius: 2.5,
-          background: "linear-gradient(135deg, #F0FDF4, #F0F9FF)",
-          border: "1px solid #D1FAE5",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <SchoolIcon sx={{ fontSize: 26, color: C.primary }} />
-        </Box>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2.5, mb: 4 }}>
+        <Avatar 
+          sx={{ 
+            width: 56, height: 56, 
+            background: `linear-gradient(135deg, ${C.primary}, ${C.secondary})`,
+            fontWeight: 800, fontSize: "1.2rem",
+            boxShadow: "0 4px 12px rgba(15, 118, 110, 0.2)"
+          }}
+        >
+          {username ? username[0].toUpperCase() : "U"}
+        </Avatar>
         <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>
-            My Profile
+          <Typography variant="h4" sx={{ fontWeight: 900, color: "#0F172A", lineHeight: 1, letterSpacing: -0.5 }}>
+            {username || "Learner"}
           </Typography>
-          <Typography variant="caption" sx={{ color: "#64748B" }}>
-            Your learning journey at a glance
+          <Typography variant="body2" sx={{ color: "#64748B", mt: 0.5, fontWeight: 500 }}>
+            Mastery Dashboard • {studyHistory.length} Journey{studyHistory.length !== 1 ? "s" : ""}
           </Typography>
         </Box>
       </Box>
@@ -169,7 +177,7 @@ export default function Profile({ userId, username, studyHistory, plan, subject,
           position: "relative",
           boxShadow: "0 10px 30px rgba(15, 118, 110, 0.2)"
         }}>
-          <Box sx={{ p: 4, z_index: 2, position: "relative" }}>
+          <Box sx={{ p: 4, zIndex: 2, position: "relative" }}>
             <Grid container spacing={3} alignItems="center">
               <Grid item xs={12} md={8}>
                 <Chip label="ACTIVE COURSE" size="small" sx={{ background: "rgba(255,255,255,0.2)", color: "#fff", fontWeight: 700, mb: 1.5, backdropFilter: "blur(4px)" }} />
@@ -221,248 +229,191 @@ export default function Profile({ userId, username, studyHistory, plan, subject,
         </Card>
       )}
 
-      {/* Stats row & Mastery Radar */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      {/* Main Content Grid */}
+      <Grid container spacing={3}>
+        {/* LEFT COLUMN: Activity & History */}
         <Grid item xs={12} lg={8}>
-          <Grid container spacing={2}>
-            <Grid item xs={6} sm={3}>
-              <StatCard icon={<LocalFireDepartmentIcon />} label="Current Streak" value={`${streak}d`} color="#F59E0B" />
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <StatCard icon={<EmojiEventsIcon />} label="Top Streak" value={`${longestStreak}d`} color={C.accent} />
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <StatCard icon={<MenuBookIcon />} label="Total Plans" value={studyHistory.length} color={C.primary} />
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <StatCard icon={<StarIcon />} label="Verified" value={verifiedCount} color={C.secondary} />
-            </Grid>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             
-            {/* Activity Heatmap Card */}
-            <Grid item xs={12}>
-              <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", p: 3 }}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#1E293B" }}>Activity Intensity</Typography>
-                    <Typography variant="caption" sx={{ color: "#64748B" }}>Last 28 Days</Typography>
-                </Box>
-                <Box sx={{ display: "grid", gridTemplateColumns: "repeat(14, 1fr)", gap: 1 }}>
-                    {heatmap.map((cell, idx) => (
-                        <MuiTooltip key={idx} title={`${cell.date}: ${Math.round(cell.score * 100)}%`}>
-                            <Box sx={{ 
-                                pt: "100%", 
-                                borderRadius: 1.5, 
-                                background: cell.score === 0 ? "#F1F5F9" : scoreColor(cell.score),
-                                opacity: cell.score === 0 ? 1 : 0.6 + (cell.score * 0.4),
-                                transition: "transform 0.1s",
-                                "&:hover": { transform: "scale(1.2)", zIndex: 1, cursor: "pointer" }
-                            }} />
-                        </MuiTooltip>
-                    ))}
-                </Box>
-              </Card>
+            {/* Stats row */}
+            <Grid container spacing={2}>
+              <Grid item xs={6} sm={3}>
+                <StatCard icon={<LocalFireDepartmentIcon />} label="Streak" value={`${streak}d`} color="#F59E0B" />
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <StatCard icon={<EmojiEventsIcon />} label="Best" value={`${longestStreak}d`} color={C.accent} />
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <StatCard icon={<MenuBookIcon />} label="Plans" value={studyHistory.length} color={C.primary} />
+              </Grid>
+              <Grid item xs={6} sm={3}>
+                <StatCard icon={<StarIcon />} label="Verify" value={verifiedCount} color={C.secondary} />
+              </Grid>
             </Grid>
-          </Grid>
+
+            {/* Activity Heatmap */}
+            <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", p: 2.5 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1E293B" }}>Activity Intensity</Typography>
+                  <Typography variant="caption" sx={{ color: "#64748B" }}>Last 28 Days</Typography>
+              </Box>
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(14, 1fr)", gap: 1 }}>
+                  {heatmap.map((cell, idx) => (
+                      <MuiTooltip key={idx} title={`${cell.date}: ${Math.round(cell.score * 100)}%`}>
+                          <Box sx={{ 
+                              pt: "100%", borderRadius: 1.5, 
+                              background: cell.score === 0 ? "#F1F5F9" : scoreColor(cell.score),
+                              opacity: cell.score === 0 ? 1 : 0.6 + (cell.score * 0.4),
+                              transition: "transform 0.1s",
+                              "&:hover": { transform: "scale(1.2)", zIndex: 1, cursor: "pointer" }
+                          }} />
+                      </MuiTooltip>
+                  ))}
+              </Box>
+            </Card>
+
+            {/* Detailed Study History */}
+            <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0" }}>
+              <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", gap: 1.5, justifyContent: "space-between" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <MenuBookIcon sx={{ color: C.primary, fontSize: 18 }} />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1E293B" }}>My Learning History</Typography>
+                </Box>
+                <Chip label={`${studyHistory.length} Courses`} size="small" sx={{ background: `${C.primary}15`, color: C.primary, fontWeight: 700, fontSize: "0.65rem" }} />
+              </Box>
+              <CardContent sx={{ p: 0 }}>
+                {studyHistory.length === 0 ? (
+                  <Typography variant="body2" sx={{ color: "#94A3B8", textAlign: "center", py: 4 }}>
+                    No sessions yet. Time to start the journey!
+                  </Typography>
+                ) : (
+                  <List sx={{ p: 0 }}>
+                    {studyHistory.slice(0, 6).map((entry, i) => {
+                      const entryTotal     = entry.plan ? entry.plan.reduce((s, d) => s + (d.topics?.length || 0), 0) : 0;
+                      const entryCompleted = entry.plan ? entry.plan.reduce((s, d) => s + (d.topics?.filter(t => t.completed).length || 0), 0) : 0;
+                      const entryPct       = entryTotal > 0 ? Math.round((entryCompleted / entryTotal) * 100) : 0;
+
+                      return (
+                        <ListItem key={entry.id} sx={{
+                          px: 3, py: 1.5,
+                          borderBottom: i < Math.min(studyHistory.length, 6) - 1 ? "1px solid #F1F5F9" : "none",
+                          "&:hover": { background: "#F8FAFC" },
+                          display: "flex", alignItems: "center", gap: 2
+                        }}>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {entry.subject}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: "#94A3B8" }}>
+                              {entry.createdAt} • {entry.level}
+                            </Typography>
+                          </Box>
+                          
+                          <Box sx={{ width: 80, display: { xs: "none", sm: "block" } }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                              <Typography variant="caption" sx={{ fontWeight: 800, color: C.primary, fontSize: "0.6rem" }}>{entryPct}%</Typography>
+                            </Box>
+                            <LinearProgress variant="determinate" value={entryPct} sx={{ height: 4, borderRadius: 2, background: "#E2E8F0", "& .MuiLinearProgress-bar": { background: C.primary } }} />
+                          </Box>
+
+                          <Button size="small" onClick={() => onResumeCourse(entry)}
+                            sx={{ textTransform: "none", fontWeight: 700, fontSize: "0.7rem", color: C.primary, mr: 1, "&:hover": { background: `${C.primary}10` } }}>
+                            Resume
+                          </Button>
+                          
+                          <IconButton size="small" onClick={() => onDeleteHistory(entry.id)} sx={{ color: "#94A3B8", "&:hover": { color: "#EF4444", background: "#FFF5F5" } }}>
+                            <DeleteOutlineIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        </ListItem>
+                      );
+                    })}
+                  </List>
+                )}
+              </CardContent>
+            </Card>
+          </Box>
         </Grid>
 
+        {/* RIGHT COLUMN: Mastery & Progress */}
         <Grid item xs={12} lg={4}>
-          <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", height: "100%" }}>
-            <CardContent>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#1E293B", mb: 2 }}>Learning Profile</Typography>
-              <Box sx={{ height: 280, width: "100%", display: "flex", justifyContent: "center" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+            
+            {/* Radar Chart Card */}
+            <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", p: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1E293B", mb: 2 }}>Learning Profile</Typography>
+              <Box sx={{ height: 260, width: "100%", display: "flex", justifyContent: "center" }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-                    <PolarGrid stroke="#E2E8F0" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 700, fill: "#64748B" }} />
+                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                    <PolarGrid stroke="#E2E8F0" strokeWidth={1} />
+                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 800, fill: "#64748B" }} />
                     <Radar
-                      name="Student"
-                      dataKey="A"
-                      stroke={C.primary}
-                      fill={C.primary}
-                      fillOpacity={0.5}
+                      name="Student" dataKey="A"
+                      stroke={C.primary} strokeWidth={2}
+                      fill={C.primary} fillOpacity={0.2}
+                      animationBegin={100} animationDuration={800}
                     />
                   </RadarChart>
                 </ResponsiveContainer>
               </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
+            </Card>
 
-      <Grid container spacing={3}>
-        {/* Achievement Badges */}
-        <Grid item xs={12}>
-          <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", p: 3, background: "#fff" }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "#1E293B", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
-                <EmojiEventsIcon sx={{ color: "#F59E0B" }} /> Achievements & Badges
-            </Typography>
-            <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                {[
-                    { label: "Consistent Learner", icon: <LocalFireDepartmentIcon />, active: streak >= 3, color: "#F59E0B", text: "3+ Day Streak" },
-                    { label: "Course Explorer", icon: <SchoolIcon />, active: studyHistory.length >= 3, color: C.primary, text: "3+ Plans Created" },
-                    { label: "Quiz Whiz", icon: <CheckCircleIcon />, active: verifiedCount >= 5, color: "#10B981", text: "5+ Quizzes Passed" },
-                    { label: "Deep Diver", icon: <TrendingUpIcon />, active: completionPct >= 50, color: C.secondary, text: "50% Completion" },
-                    { label: "Scholar", icon: <StarIcon />, active: studyHistory.some(h => h.level === "Advanced"), color: C.accent, text: "Advanced Level" },
-                ].map((badge, i) => (
-                    <MuiTooltip key={i} title={badge.text}>
-                        <Box sx={{ 
-                            p: 1.5, borderRadius: 2, border: "1px solid",
-                            borderColor: badge.active ? `${badge.color}30` : "#E2E8F0",
-                            background: badge.active ? `${badge.color}08` : "#F8FAFC",
-                            display: "flex", alignItems: "center", gap: 1.5,
-                            opacity: badge.active ? 1 : 0.4,
-                            filter: badge.active ? "none" : "grayscale(100%)",
-                            transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                            "&:hover": { transform: badge.active ? "translateY(-4px)" : "none", boxShadow: badge.active ? "0 4px 12px rgba(0,0,0,0.05)" : "none" }
-                        }}>
-                            <Box sx={{ color: badge.active ? badge.color : "#94A3B8" }}>{badge.icon}</Box>
-                            <Typography variant="caption" sx={{ fontWeight: 700, color: badge.active ? "#1E293B" : "#94A3B8" }}>{badge.label}</Typography>
-                        </Box>
-                    </MuiTooltip>
-                ))}
-            </Box>
-          </Card>
-        </Grid>
-
-        {/* Course Details Grid */}
-        <Grid item xs={12} md={6}>
-          <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", height: "100%" }}>
-            <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", gap: 1.5 }}>
-              <CheckCircleIcon sx={{ color: C.primary, fontSize: 20 }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#1E293B" }}>
-                Active Plan Progress
+            {/* Achievement Badges */}
+            <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", p: 2.5 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1E293B", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                  <EmojiEventsIcon sx={{ color: "#F59E0B", fontSize: 18 }} /> Achievements
               </Typography>
-            </Box>
-            <CardContent sx={{ p: 3 }}>
-              {plan.length === 0 ? (
-                <Typography variant="body2" sx={{ color: "#94A3B8", textAlign: "center", py: 3 }}>
-                   No active plan. Start a new study journey!
+              <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+                  {[
+                      { icon: <LocalFireDepartmentIcon />, active: streak >= 3, color: "#F59E0B" },
+                      { icon: <SchoolIcon />, active: studyHistory.length >= 3, color: C.primary },
+                      { icon: <CheckCircleIcon />, active: verifiedCount >= 5, color: "#10B981" },
+                      { icon: <TrendingUpIcon />, active: completionPct >= 50, color: C.secondary },
+                      { icon: <StarIcon />, active: studyHistory.some(h => h.level === "Advanced"), color: C.accent },
+                  ].map((badge, i) => (
+                    <Box key={i} sx={{ 
+                        p: 1.25, borderRadius: 2, border: "1px solid",
+                        borderColor: badge.active ? `${badge.color}30` : "#F1F5F9",
+                        background: badge.active ? `${badge.color}08` : "#F8FAFC",
+                        color: badge.active ? badge.color : "#CBD5E1",
+                        opacity: badge.active ? 1 : 0.5,
+                        display: "flex",
+                        transition: "all 0.2s"
+                    }}>{React.cloneElement(badge.icon, { sx: { fontSize: 20 } })}</Box>
+                  ))}
+              </Box>
+            </Card>
+
+            {/* Active Plan Card */}
+            {plan.length > 0 && (
+              <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0", p: 2.5, background: "#F8FAFC" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#1E293B", mb: 2, display: "flex", alignItems: "center", gap: 1 }}>
+                  <CheckCircleIcon sx={{ color: C.primary, fontSize: 18 }} /> Current Progress
                 </Typography>
-              ) : (
-                <>
-                  <Box sx={{ mb: 3 }}>
-                    <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: "#1E293B" }}>{activeCourse?.subject || subject}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: C.primary }}>{completionPct}%</Typography>
-                    </Box>
-                    <LinearProgress variant="determinate" value={completionPct}
-                      sx={{ height: 10, borderRadius: 5, background: "#E2E8F0",
-                        "& .MuiLinearProgress-bar": { background: `linear-gradient(90deg, ${C.primary}, ${C.secondary})`, borderRadius: 5 } }} />
+                <Box sx={{ mb: 2 }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: "#475569" }}>{subject}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 900, color: C.primary }}>{completionPct}%</Typography>
                   </Box>
-
-                  <Grid container spacing={2}>
-                    {[
-                      { label: "Verified Topics", value: verifiedCount, icon: <StarIcon /> },
-                      { label: "Remaining", value: totalTopics - completedCount, icon: <MenuBookIcon /> },
-                    ].map(s => (
-                      <Grid item xs={6} key={s.label}>
-                        <Box sx={{ p: 2, background: "#F8FAFC", borderRadius: 2.5, textAlign: "left", border: "1px solid #F1F5F9" }}>
-                          <Typography variant="h5" sx={{ fontWeight: 900, color: C.primary, lineHeight: 1, mb: 0.5 }}>{s.value}</Typography>
-                          <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 600 }}>{s.label}</Typography>
-                        </Box>
-                      </Grid>
-                    ))}
+                  <LinearProgress variant="determinate" value={completionPct}
+                    sx={{ height: 6, borderRadius: 3, background: "#E2E8F0", "& .MuiLinearProgress-bar": { background: C.primary } }} />
+                </Box>
+                <Grid container spacing={1.5}>
+                  <Grid item xs={6}>
+                    <Box sx={{ p: 1.5, background: "#fff", borderRadius: 2, border: "1px solid #F1F5F9" }}>
+                      <Typography variant="h6" sx={{ fontWeight: 900, color: C.primary, lineHeight: 1 }}>{verifiedCount}</Typography>
+                      <Typography variant="caption" sx={{ color: "#94A3B8" }}>Verified</Typography>
+                    </Box>
                   </Grid>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-
-        {/* Study history */}
-        <Grid item xs={12}>
-          <Card elevation={0} sx={{ borderRadius: 3, border: "1px solid #E2E8F0" }}>
-            <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", gap: 1.5 }}>
-              <MenuBookIcon sx={{ color: C.primary, fontSize: 20 }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#1E293B" }}>
-                Courses Started
-              </Typography>
-              <Chip label={studyHistory.length} size="small"
-                sx={{ background: `${C.primary}15`, color: C.primary, fontWeight: 700, fontSize: "0.7rem" }} />
-            </Box>
-            <CardContent sx={{ p: 0 }}>
-              {studyHistory.length === 0 ? (
-                <Typography variant="body2" sx={{ color: "#94A3B8", textAlign: "center", py: 4 }}>
-                  No courses yet. Start studying to see your history here.
-                </Typography>
-              ) : (
-                <List sx={{ p: 0 }}>
-                  {studyHistory.slice(0, 8).map((entry, i) => {
-                    const entryTotal     = entry.plan ? entry.plan.reduce((s, d) => s + (d.topics?.length || 0), 0) : 0;
-                    const entryCompleted = entry.plan ? entry.plan.reduce((s, d) => s + (d.topics?.filter(t => t.completed).length || 0), 0) : 0;
-                    const entryPct       = entryTotal > 0 ? Math.round((entryCompleted / entryTotal) * 100) : 0;
-
-                    return (
-                      <ListItem key={entry.id} sx={{
-                        px: 3, py: 2,
-                        borderBottom: i < Math.min(studyHistory.length, 8) - 1 ? "1px solid #F1F5F9" : "none",
-                        "&:hover": { background: "#F8FAFC" },
-                        display: "flex", alignItems: "center", flexWrap: { xs: "wrap", sm: "nowrap" }, gap: 1
-                      }}>
-                        <Box sx={{
-                          width: 36, height: 36, borderRadius: 2, mr: 1, flexShrink: 0,
-                          background: `${C.primary}12`, border: `1px solid ${C.primary}20`,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>
-                          <MenuBookIcon sx={{ fontSize: 18, color: C.primary }} />
-                        </Box>
-                        
-                        <ListItemText
-                          sx={{ flex: 1, minWidth: { xs: "100%", sm: "auto" }, mb: { xs: 1, sm: 0 } }}
-                          primary={
-                            <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B" }}>
-                              {entry.subject}
-                            </Typography>
-                          }
-                          secondary={
-                            <Typography variant="caption" sx={{ color: "#94A3B8" }}>
-                              {entry.createdAt} · {entry.days}d · {entry.hours}h/d
-                            </Typography>
-                          }
-                        />
-
-                        {entry.plan && (
-                          <Box sx={{ width: { xs: "100%", sm: 100 }, mr: { sm: 2 }, mb: { xs: 1, sm: 0 } }}>
-                            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-                              <Typography variant="caption" sx={{ fontWeight: 700, color: C.primary, fontSize: "0.6rem" }}>
-                                {entryPct}%
-                              </Typography>
-                            </Box>
-                            <LinearProgress variant="determinate" value={entryPct} sx={{ height: 4, borderRadius: 2, background: "#E2E8F0", "& .MuiLinearProgress-bar": { background: C.primary, borderRadius: 2 } }} />
-                          </Box>
-                        )}
-
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: "auto" }}>
-                          <Chip label={entry.level} size="small" sx={{
-                            background: entry.level === "Beginner" ? "#F0FDF4" : entry.level === "Intermediate" ? "#EFF6FF" : "#F5F3FF",
-                            color: entry.level === "Beginner" ? "#065F46" : entry.level === "Intermediate" ? "#1D4ED8" : "#6D28D9",
-                            fontWeight: 600, fontSize: "0.65rem", height: 20
-                          }} />
-                          <Button 
-                            variant="contained" 
-                            size="small" 
-                            onClick={() => onResumeCourse(entry)}
-                            sx={{ 
-                              textTransform: "none", 
-                              fontWeight: 700, 
-                              fontSize: "0.7rem", 
-                              background: C.primary,
-                              borderRadius: 1.5,
-                              px: 1.5,
-                              minWidth: 70,
-                              "&:hover": { background: C.secondary }
-                            }}
-                          >
-                            Resume
-                          </Button>
-                        </Box>
-                      </ListItem>
-                    );
-                  })}
-                </List>
-              )}
-            </CardContent>
-          </Card>
+                  <Grid item xs={6}>
+                    <Box sx={{ p: 1.5, background: "#fff", borderRadius: 2, border: "1px solid #F1F5F9" }}>
+                      <Typography variant="h6" sx={{ fontWeight: 900, color: "#475569", lineHeight: 1 }}>{totalTopics - completedCount}</Typography>
+                      <Typography variant="caption" sx={{ color: "#94A3B8" }}>Left</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+              </Card>
+            )}
+          </Box>
         </Grid>
       </Grid>
     </Box>

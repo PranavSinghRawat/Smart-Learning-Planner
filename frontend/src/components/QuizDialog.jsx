@@ -218,20 +218,11 @@ export default function QuizDialog({ open, topicName, subject, onPass, onFail, o
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 3, gap: 1 }}>
-        {/* Skip button — always available */}
-        {!submitted && (
-          <Button onClick={() => onPass(0, 0, true)} variant="text"
-            sx={{ color: "#94A3B8", textTransform: "none", fontSize: "0.8rem" }}>
-            Skip quiz
-          </Button>
-        )}
-
-        {error && (
-          <Button onClick={() => onPass(0, 0, true)} variant="outlined"
-            sx={{ borderColor: C.primary, color: C.primary, textTransform: "none", borderRadius: 2 }}>
-            Mark complete anyway
-          </Button>
-        )}
+        {/* Only Close allowed — no skip path */}
+        <Button onClick={onClose} variant="text"
+          sx={{ color: "#94A3B8", textTransform: "none", fontSize: "0.8rem" }}>
+          Close
+        </Button>
 
         {!loading && !error && !submitted && questions.length > 0 && (
           <Button

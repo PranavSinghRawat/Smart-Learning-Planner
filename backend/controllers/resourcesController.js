@@ -70,7 +70,9 @@ const generateStudyPlan = async (req, res) => {
     return res.status(400).json({ error: 'subject, days, hours, and level are required' });
 
   try {
-    const data = await askGroq(`You are an expert study planner. Create a ${days}-day study plan for "${subject}" at ${level} level with ${hours} hours per day.
+    const data = await askGroq(`You are an expert study planner. Create a high-intensity ${days}-day learning sprint for "${subject}" at ${level} level with ${hours} hours per day.
+
+IMPORTANT: Frame this as a "Focus Sprint" or "Foundations Module", as it is part of a larger journey. Focus on the most critical, high-impact topics that can actually be mastered in this short timeframe.
 
 Return ONLY raw JSON in this exact format:
 {
@@ -78,6 +80,7 @@ Return ONLY raw JSON in this exact format:
   "level": "${level}",
   "totalDays": ${days},
   "hoursPerDay": ${hours},
+  "phaseTitle": "e.g., Phase 1: Core Foundations",
   "plan": [
     {
       "day": 1,
@@ -90,8 +93,8 @@ Return ONLY raw JSON in this exact format:
 
 Rules:
 - Each day topics must fit within ${hours} hours total
-- Topics in logical learning order (fundamentals first)
-- Topic names specific and actionable
+- Focus on foundational and high-impact concepts first
+- Topic names must be specific and actionable
 - Return exactly ${days} day objects
 - Return ONLY the JSON object`);
 
@@ -175,11 +178,12 @@ Rules:
 };
 
 const generateCodingChallenge = async (req, res) => {
-  const { topic, subject } = req.body;
+  const { topic, subject, language = 'javascript' } = req.body;
   if (!topic) return res.status(400).json({ error: 'topic is required' });
 
   try {
     const data = await askGroq(`You are a coding challenge generator. A student just studied "${topic}"${subject ? ` (part of ${subject})` : ''}.
+    The student wants to solve the challenge in ${language}.
 
 Generate a beginner-friendly coding challenge to test their understanding.
 
@@ -190,19 +194,21 @@ Return ONLY raw JSON:
   "examples": [
     { "input": "example input", "output": "expected output", "explanation": "why" }
   ],
-  "starterCode": "// Write your solution here\\nfunction solution() {\\n  \\n}",
+  "starterCode": "language-specific starter code here",
   "testCases": [
     { "input": "test input", "expected": "expected output" }
   ],
-  "hint": "one helpful hint without giving away the answer",
-  "language": "javascript"
+  "hint": "one helpful hint",
+  "language": "${language}"
 }
 
 Rules:
-- Challenge must be directly related to "${topic}"
-- Keep it solvable in 10-15 minutes
-- Starter code must be valid JavaScript with a function to complete
-- Include 2 test cases
+- starterCode must be valid for ${language}. 
+- For JavaScript: function solution(...) { ... }
+- For Python: def solution(...):
+- For Java: class Solution { public static Object solution(...) { ... } }
+- For C++: class Solution { public: auto solution(...) { ... } };
+- Return exactly 2 test cases
 - Return ONLY the JSON object`);
 
     res.status(200).json(data);

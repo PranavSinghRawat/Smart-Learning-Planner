@@ -32,6 +32,7 @@ import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import StopIcon from "@mui/icons-material/Stop";
+import LockIcon from "@mui/icons-material/Lock";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import SmartPlan from "./pages/SmartPlan";
@@ -113,6 +114,8 @@ function App() {
   const [quizOpen, setQuizOpen]           = useState(false);
   const [codingOpen, setCodingOpen]       = useState(false);
   const [quizTopic, setQuizTopic]         = useState({ name: "", subject: "", dayIdx: 0, topicIdx: 0 });
+  const [duplicatePlan, setDuplicatePlan] = useState(null);
+  const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
 
   const getCustomSubjectsKey = (uid) => `customSubjects_${uid}`;
   const getStudyHistoryKey   = (uid) => `studyHistory_${uid}`;
@@ -159,12 +162,19 @@ function App() {
     if (currentUserId && plan.length > 0) {
       localStorage.setItem(getActivePlanKey(currentUserId), JSON.stringify(plan));
       localStorage.setItem(getActivePlanMetaKey(currentUserId), JSON.stringify({ subject, days, hours, level }));
-      // Update the matching history entry with latest plan state
-      setStudyHistory(prev => prev.map((h, i) =>
-        i === 0 && h.subject === subject ? { ...h, plan } : h
-      ));
+      
+      // Sync the latest plan state to study history
+      setStudyHistory(prev => {
+        const idx = prev.findIndex(h => h.subject === subject);
+        if (idx !== -1) {
+          const updated = [...prev];
+          updated[idx] = { ...updated[idx], plan };
+          return updated;
+        }
+        return prev;
+      });
     }
-  }, [plan, currentUserId]);
+  }, [plan, currentUserId, subject, days, hours, level]);
 
   useEffect(() => {
     let interval;
@@ -226,11 +236,22 @@ function App() {
     return null;
   };
 
-  const generatePlan = async () => {
+  const generatePlan = async (forceNew = false) => {
     const subData = resolveSubject(subject);
     if (!subject.trim()) { showSnackbar('Please enter a subject name', 'error'); return; }
+
+    // DEDUPLICATION: Check if this exact course already exists
+    if (!forceNew) {
+      const existing = studyHistory.find(h => h.subject.toLowerCase() === subject.toLowerCase() && h.level === level);
+      if (existing) {
+        setDuplicatePlan(existing);
+        setResumeDialogOpen(true);
+        return;
+      }
+    }
+
     setLoading(true);
-    showSnackbar('Generating your study plan...', 'info');
+    showSnackbar('Generating your learning sprint...', 'info');
     try {
       const base = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
       const res = await fetch(`${base}/resources/plan`, {
@@ -243,15 +264,24 @@ function App() {
         if (data.plan && data.plan.length > 0) {
           const newPlan = data.plan.map(d => ({ ...d, topics: d.topics.map(t => ({ ...t, completed: false })) }));
           const historyEntry = { id: Date.now(), subject, level, days, hours, createdAt: new Date().toLocaleDateString(), plan: newPlan };
+          
           setPlan(newPlan);
-          setStudyHistory([historyEntry, ...studyHistory]);
+          // Deduplicate: Remove any existing history entry with the same config
+          setStudyHistory(prev => {
+            const filtered = prev.filter(h => 
+              !(h.subject === subject && h.level === level && h.days === days && h.hours === hours)
+            );
+            return [historyEntry, ...filtered];
+          });
+          
           showSnackbar('AI study plan generated!');
           setLoading(false);
           return;
         }
       }
     } catch (e) {}
-    // Fallback to local generation if Gemini fails
+
+    // Fallback logic
     const topics = subData?.[level] || [];
     if (!topics.length) { showSnackbar('No topics available for this level', 'error'); setLoading(false); return; }
     const topicsPerDay = Math.ceil(topics.length / days);
@@ -266,10 +296,23 @@ function App() {
       planData.push({ day, topics: dayTopics });
     }
     const historyEntry2 = { id: Date.now(), subject, level, days, hours, createdAt: new Date().toLocaleDateString(), plan: planData };
+    
     setPlan(planData);
-    setStudyHistory([historyEntry2, ...studyHistory]);
+    // Deduplicate: Remove any existing history entry with the same config
+    setStudyHistory(prev => {
+      const filtered = prev.filter(h => 
+        !(h.subject === subject && h.level === level && h.days === days && h.hours === hours)
+      );
+      return [historyEntry2, ...filtered];
+    });
+    
     showSnackbar('Study plan generated!');
     setLoading(false);
+  };
+
+  const handleDeleteHistory = (id) => {
+    setStudyHistory(prev => prev.filter(h => h.id !== id));
+    showSnackbar("Course removed from history", "info");
   };
 
   // Save today's study score to localStorage for LSTM predictor
@@ -315,12 +358,23 @@ function App() {
 
   const handleQuizPass = (correct, total, skipped = false) => {
     setQuizOpen(false);
+    if (skipped) {
+      showSnackbar('Skill verification required to progress', 'warning');
+      return;
+    }
     const { dayIdx, topicIdx } = quizTopic;
     const quizScore = total > 0 ? correct / total : 0;
+    const passed = correct >= 2;
+    
+    if (!passed) {
+      showSnackbar('Minimum mastery not met. Try again!', 'error');
+      return;
+    }
+
     const updated = plan.map((d, di) =>
       di !== dayIdx ? d : {
         ...d, topics: d.topics.map((t, ti) =>
-          ti !== topicIdx ? t : { ...t, completed: true, verified: !skipped && correct >= 2, quizScore }
+          ti !== topicIdx ? t : { ...t, completed: true, verified: true, quizScore }
         )
       }
     );
@@ -329,13 +383,23 @@ function App() {
     const key = `${dayIdx}-${topicIdx}`;
     setCompletedFlash(key);
     setTimeout(() => setCompletedFlash(null), 700);
-    if (skipped) showSnackbar('Topic marked complete (unverified)');
-    else if (correct >= 2) showSnackbar(`Topic verified! ${correct}/${total} correct`);
+    showSnackbar(`Module mastered! ${correct}/${total} correct`);
   };
 
   const handleQuizFail = () => {
     setQuizOpen(false);
-    showSnackbar('Review this topic and try again', 'warning');
+    showSnackbar('Mastery check failed. Review concepts and try again.', 'warning');
+  };
+
+  const isTopicLocked = (dayIdx, topicIdx) => {
+    if (dayIdx === 0 && topicIdx === 0) return false;
+    
+    // Get all previous topics in a flat list
+    const flatTopics = plan.flatMap(d => d.topics);
+    const currentIdx = plan.slice(0, dayIdx).reduce((acc, d) => acc + d.topics.length, 0) + topicIdx;
+    
+    // Locked if any previous topic is not completed
+    return !flatTopics[currentIdx - 1].completed;
   };
 
   const dayProgress = (day) => {
@@ -466,6 +530,7 @@ function App() {
           userId={currentUserId} username={currentUsername}
           studyHistory={studyHistory} plan={plan}
           subject={subject} level={level} days={days} hours={hours}
+          onDeleteHistory={handleDeleteHistory}
           onResumeCourse={(entry) => {
             if (entry.plan) {
               setPlan(entry.plan);
@@ -473,6 +538,12 @@ function App() {
               setLevel(entry.level);
               setDays(entry.days);
               setHours(entry.hours);
+              setSmartPlanContext(null);
+              // Move the resumed course to the top of history
+              setStudyHistory(prev => {
+                const filtered = prev.filter(h => h.id !== entry.id);
+                return [entry, ...filtered];
+              });
             }
             setActiveTab(0);
           }}
@@ -544,8 +615,8 @@ function App() {
             <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
-                label="What do you want to learn?"
-                placeholder="e.g. Machine Learning, Guitar, French, Pottery..."
+                label="What sprint are you starting?"
+                placeholder="e.g. React Patterns, SQL Basics, French Vocab..."
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && generatePlan()}
@@ -581,20 +652,57 @@ function App() {
             </Grid>
             <Grid item xs={12} sm={6} md={2}>
               <Button fullWidth variant="contained"
-                sx={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`, borderRadius: 2, fontWeight: 600, py: 1.5 }}
-                onClick={generatePlan} disabled={loading}>
-                {loading ? 'Generating...' : 'Generate'}
+                sx={{ background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.secondary})`, borderRadius: 2, fontWeight: 700, py: 1.5, textTransform: "none" }}
+                onClick={() => generatePlan()} disabled={loading}>
+                {loading ? 'Generating...' : 'Start Sprint'}
               </Button>
             </Grid>
             <Grid item xs={12} md={2}>
               <Button fullWidth variant="outlined"
-                sx={{ borderColor: COLORS.primary, color: COLORS.primary, borderRadius: 2, fontWeight: 600, py: 1.5 }}
+                sx={{ borderColor: COLORS.primary, color: COLORS.primary, borderRadius: 2, fontWeight: 700, py: 1.5, textTransform: "none" }}
                 onClick={() => setShowCustomDialog(true)}>
-                Custom Plan
+                Custom Sprint
               </Button>
             </Grid>
           </Grid>
         </Paper>
+
+        {/* Persistence Guard Dialog */}
+        <Dialog open={resumeDialogOpen} onClose={() => setResumeDialogOpen(false)} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+          <DialogTitle sx={{ fontWeight: 800 }}>Already in Progress</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" sx={{ color: "#64748B" }}>
+              You are already studying <strong>{duplicatePlan?.subject}</strong> at the <strong>{duplicatePlan?.level}</strong> level.
+              Professional students usually continue their existing path to maintain mastery.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, gap: 1 }}>
+            <Button onClick={() => {
+              setResumeDialogOpen(false);
+              generatePlan(true);
+            }} sx={{ color: "#94A3B8", textTransform: "none", fontWeight: 700 }}>
+              Start New Phase
+            </Button>
+            <Button onClick={() => {
+              setResumeDialogOpen(false);
+              if (duplicatePlan) {
+                setPlan(duplicatePlan.plan);
+                setSubject(duplicatePlan.subject);
+                setLevel(duplicatePlan.level);
+                setDays(duplicatePlan.days);
+                setHours(duplicatePlan.hours);
+                // Promote to top
+                setStudyHistory(prev => {
+                  const filtered = prev.filter(h => h.id !== duplicatePlan.id);
+                  return [duplicatePlan, ...filtered];
+                });
+              }
+              setActiveTab(0);
+            }} variant="contained" sx={{ background: COLORS.primary, textTransform: "none", fontWeight: 700, borderRadius: 2 }}>
+              Resume Sprint
+            </Button>
+          </DialogActions>
+        </Dialog>
 
         {/* CUSTOM SUBJECT DIALOG */}
         <Dialog open={showCustomDialog} onClose={() => setShowCustomDialog(false)} maxWidth="md" fullWidth>
@@ -818,6 +926,7 @@ function App() {
                       <AccordionDetails sx={{ pt: 2, pb: 2, px: 2.5, background: "#fff" }}>
                         <List sx={{ p: 0 }}>
                           {day.topics.map((topic, j) => {
+                            const locked = isTopicLocked(i, j);
                             const flashKey = `${i}-${j}`;
                             const isFlashing = completedFlash === flashKey;
                             return (
@@ -826,27 +935,38 @@ function App() {
                                 py: 1.5, borderBottom: "1px solid #F1F5F9", "&:last-child": { borderBottom: "none" },
                                 transition: "all 0.25s", alignItems: "flex-start",
                                 background: isFlashing ? `${COLORS.ahead}10` : "transparent",
+                                opacity: locked ? 0.6 : 1,
+                                filter: locked ? "grayscale(100%)" : "none",
+                                pointerEvents: locked ? "none" : "auto",
                                 borderRadius: 2,
-                                "&:hover": { background: "#F8FAFC" },
+                                "&:hover": { background: locked ? "transparent" : "#F8FAFC" },
                               }}>
-                              <ListItemIcon sx={{ minWidth: 40, mt: 0.5, cursor: "pointer" }} onClick={() => toggleSubtopic(i, j)}>
-                                {topic.completed
-                                  ? <CheckCircleIcon sx={{ color: topic.verified ? COLORS.ahead : COLORS.track, fontSize: 22, transition: "transform 0.2s", transform: isFlashing ? "scale(1.3)" : "scale(1)" }} />
-                                  : <RadioButtonUncheckedIcon sx={{ color: "#CBD5E1", fontSize: 22 }} />}
+                              <ListItemIcon sx={{ minWidth: 40, mt: 0.5, cursor: locked ? "default" : "pointer" }} onClick={() => !locked && toggleSubtopic(i, j)}>
+                                {locked ? (
+                                  <LockIcon sx={{ color: "#94A3B8", fontSize: 20 }} />
+                                ) : topic.completed ? (
+                                  <CheckCircleIcon sx={{ color: COLORS.ahead, fontSize: 22, transition: "transform 0.2s", transform: isFlashing ? "scale(1.3)" : "scale(1)" }} />
+                                ) : (
+                                  <RadioButtonUncheckedIcon sx={{ color: COLORS.primary, fontSize: 22 }} />
+                                )}
                               </ListItemIcon>
                               <ListItemText
                                 primary={
                                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                                     <Typography
-                                      onClick={() => toggleSubtopic(i, j)}
-                                      sx={{ fontWeight: 600, fontSize: "0.9rem", textDecoration: topic.completed ? "line-through" : "none", color: topic.completed ? "#94A3B8" : "#1E293B", cursor: "pointer" }}>
+                                      onClick={() => !locked && toggleSubtopic(i, j)}
+                                      sx={{ 
+                                        fontWeight: 600, fontSize: "0.9rem", 
+                                        color: topic.completed ? "#94A3B8" : "#1E293B", 
+                                        cursor: locked ? "default" : "pointer" 
+                                      }}>
                                       {topic.name}
                                     </Typography>
-                                    {topic.verified && (
-                                      <Chip label="Verified" size="small" sx={{ height: 18, fontSize: "0.6rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46" }} />
+                                    {locked && (
+                                      <Chip label="Locked" size="small" variant="outlined" sx={{ height: 18, fontSize: "0.55rem", fontWeight: 700, borderColor: "#E2E8F0", color: "#94A3B8" }} />
                                     )}
-                                    {topic.completed && !topic.verified && (
-                                      <Chip label="Unverified" size="small" sx={{ height: 18, fontSize: "0.6rem", fontWeight: 700, background: "#FEF3C7", color: "#92400E" }} />
+                                    {topic.completed && (
+                                      <Chip label="Mastered" size="small" sx={{ height: 18, fontSize: "0.6rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46" }} />
                                     )}
                                   </Box>
                                 }
