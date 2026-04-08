@@ -154,11 +154,15 @@ function App() {
     if (currentUserId) localStorage.setItem(getStudyHistoryKey(currentUserId), JSON.stringify(studyHistory));
   }, [studyHistory, currentUserId]);
 
-  // Persist active plan so page refresh doesn't wipe it
+  // Persist active plan + sync to history so resume works
   useEffect(() => {
     if (currentUserId && plan.length > 0) {
       localStorage.setItem(getActivePlanKey(currentUserId), JSON.stringify(plan));
       localStorage.setItem(getActivePlanMetaKey(currentUserId), JSON.stringify({ subject, days, hours, level }));
+      // Update the matching history entry with latest plan state
+      setStudyHistory(prev => prev.map((h, i) =>
+        i === 0 && h.subject === subject ? { ...h, plan } : h
+      ));
     }
   }, [plan, currentUserId]);
 
@@ -237,8 +241,10 @@ function App() {
       if (res.ok) {
         const data = await res.json();
         if (data.plan && data.plan.length > 0) {
-          setPlan(data.plan.map(d => ({ ...d, topics: d.topics.map(t => ({ ...t, completed: false })) })));
-          setStudyHistory([{ id: Date.now(), subject, level, days, hours, createdAt: new Date().toLocaleDateString(), completionPercentage: 0 }, ...studyHistory]);
+          const newPlan = data.plan.map(d => ({ ...d, topics: d.topics.map(t => ({ ...t, completed: false })) }));
+          const historyEntry = { id: Date.now(), subject, level, days, hours, createdAt: new Date().toLocaleDateString(), plan: newPlan };
+          setPlan(newPlan);
+          setStudyHistory([historyEntry, ...studyHistory]);
           showSnackbar('AI study plan generated!');
           setLoading(false);
           return;
@@ -259,8 +265,9 @@ function App() {
       }
       planData.push({ day, topics: dayTopics });
     }
+    const historyEntry2 = { id: Date.now(), subject, level, days, hours, createdAt: new Date().toLocaleDateString(), plan: planData };
     setPlan(planData);
-    setStudyHistory([{ id: Date.now(), subject, level, days, hours, createdAt: new Date().toLocaleDateString(), completionPercentage: 0 }, ...studyHistory]);
+    setStudyHistory([historyEntry2, ...studyHistory]);
     showSnackbar('Study plan generated!');
     setLoading(false);
   };
@@ -455,7 +462,21 @@ function App() {
         {/* NEW PAGES */}
         {activeTab === 1 && <Fade in={activeTab === 1} timeout={300}><Box><SmartPlan token={token} userId={currentUserId} dayContext={smartPlanContext} onClearDay={() => { setSmartPlanContext(null); setActiveTab(0); }} /></Box></Fade>}
         {activeTab === 2 && <Fade in={activeTab === 2} timeout={300}><Box><PerformancePredictor userId={currentUserId} token={token} /></Box></Fade>}
-        {activeTab === 3 && <Fade in={activeTab === 3} timeout={300}><Box><Profile userId={currentUserId} username={currentUsername} studyHistory={studyHistory} plan={plan} subject={subject} level={level} days={days} hours={hours} /></Box></Fade>}
+        {activeTab === 3 && <Fade in={activeTab === 3} timeout={300}><Box><Profile
+          userId={currentUserId} username={currentUsername}
+          studyHistory={studyHistory} plan={plan}
+          subject={subject} level={level} days={days} hours={hours}
+          onResumeCourse={(entry) => {
+            if (entry.plan) {
+              setPlan(entry.plan);
+              setSubject(entry.subject);
+              setLevel(entry.level);
+              setDays(entry.days);
+              setHours(entry.hours);
+            }
+            setActiveTab(0);
+          }}
+        /></Box></Fade>}
 
         {/* STUDY PLANNER (tab 0) */}
         {activeTab === 0 && (<>
