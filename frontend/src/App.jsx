@@ -36,6 +36,7 @@ import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import SmartPlan from "./pages/SmartPlan";
 import PerformancePredictor from "./pages/PerformancePredictor";
+import Profile from "./pages/Profile";
 import ResourcePanel from "./components/ResourcePanel";
 import QuizDialog from "./components/QuizDialog";
 import CodingChallengeDialog, { isCodingTopic } from "./components/CodingChallengeDialog";
@@ -403,7 +404,7 @@ function App() {
           </Box>
 
           {/* Nav tabs */}
-          {[["Study Planner", 0], ["Smart Plan", 1], ["AI Predictor", 2]].map(([label, idx]) => (
+          {[["Study Planner", 0], ["Smart Plan", 1], ["AI Predictor", 2], ["Profile", 3]].map(([label, idx]) => (
             <Button
               key={idx}
               onClick={() => setActiveTab(idx)}
@@ -454,6 +455,7 @@ function App() {
         {/* NEW PAGES */}
         {activeTab === 1 && <Fade in={activeTab === 1} timeout={300}><Box><SmartPlan token={token} userId={currentUserId} dayContext={smartPlanContext} onClearDay={() => { setSmartPlanContext(null); setActiveTab(0); }} /></Box></Fade>}
         {activeTab === 2 && <Fade in={activeTab === 2} timeout={300}><Box><PerformancePredictor userId={currentUserId} token={token} /></Box></Fade>}
+        {activeTab === 3 && <Fade in={activeTab === 3} timeout={300}><Box><Profile userId={currentUserId} username={currentUsername} studyHistory={studyHistory} plan={plan} subject={subject} level={level} days={days} hours={hours} /></Box></Fade>}
 
         {/* STUDY PLANNER (tab 0) */}
         {activeTab === 0 && (<>
