@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getResources, generateStudyPlan, generateSmartPlan, generateQuiz, generateCodingChallenge } = require('../controllers/resourcesController');
+const { getResources, generateStudyPlan, generateSmartPlan, generateQuiz, generateCodingChallenge, analyzeCodeLogic, executeCode } = require('../controllers/resourcesController');
 
 // GET /api/resources?topic=Arrays&subject=DSA
 router.get('/', getResources);
@@ -12,5 +12,9 @@ router.post('/smartplan', generateSmartPlan);
 router.post('/quiz', generateQuiz);
 // POST /api/resources/coding-challenge
 router.post('/coding-challenge', generateCodingChallenge);
+// POST /api/resources/analyze-code
+router.post('/analyze-code', analyzeCodeLogic);
+// POST /api/resources/execute
+router.post('/execute', executeCode);
 
 module.exports = router;

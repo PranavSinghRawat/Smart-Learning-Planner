@@ -364,7 +364,7 @@ function App() {
     }
     const { dayIdx, topicIdx } = quizTopic;
     const quizScore = total > 0 ? correct / total : 0;
-    const passed = correct >= 2;
+    const passed = total > 0 && (correct / total) >= 0.6;
     
     if (!passed) {
       showSnackbar('Minimum mastery not met. Try again!', 'error');
@@ -1060,6 +1060,7 @@ function App() {
         open={quizOpen}
         topicName={quizTopic.name}
         subject={quizTopic.subject || subject}
+        level={level}
         onPass={handleQuizPass}
         onFail={handleQuizFail}
         onClose={() => setQuizOpen(false)}
@@ -1069,6 +1070,7 @@ function App() {
         open={codingOpen}
         topicName={quizTopic.name}
         subject={quizTopic.subject || subject}
+        level={level}
         onPass={(correct, total, skipped) => { setCodingOpen(false); handleQuizPass(correct, total, skipped); }}
         onFail={() => { setCodingOpen(false); handleQuizFail(); }}
         onClose={() => setCodingOpen(false)}

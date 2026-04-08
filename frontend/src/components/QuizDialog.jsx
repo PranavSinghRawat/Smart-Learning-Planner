@@ -11,7 +11,7 @@ import QuizIcon from "@mui/icons-material/Quiz";
 const C = { primary: "#0F766E", secondary: "#06B6D4" };
 const API = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
 
-export default function QuizDialog({ open, topicName, subject, onPass, onFail, onClose }) {
+export default function QuizDialog({ open, topicName, subject, level = "Beginner", onPass, onFail, onClose }) {
   const [questions, setQuestions]   = useState([]);
   const [answers, setAnswers]       = useState({});
   const [loading, setLoading]       = useState(false);
@@ -34,7 +34,7 @@ export default function QuizDialog({ open, topicName, subject, onPass, onFail, o
       const res = await fetch(`${API}/resources/quiz`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topicName, subject }),
+        body: JSON.stringify({ topic: topicName, subject, level }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to generate quiz");
