@@ -39,6 +39,7 @@ import PerformancePredictor from "./pages/PerformancePredictor";
 import ResourcePanel from "./components/ResourcePanel";
 import QuizDialog from "./components/QuizDialog";
 import CodingChallengeDialog, { isCodingTopic } from "./components/CodingChallengeDialog";
+import { exportStudyPlanPDF } from "./utils/exportPDF";
 import { SUBJECTS_DB as CATALOG_DB } from "./data/subjects";
 
 const COLORS = {
@@ -715,11 +716,30 @@ function App() {
         {/* DAY CARDS */}
         {plan.length > 0 && (
           <Box>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 3 }}>
-              <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.primary}12`, border: `1px solid ${COLORS.primary}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><CalendarTodayIcon sx={{ fontSize: 18, color: COLORS.primary }} /></Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0F172A" }}>
-                Your Study Plan <Typography component="span" variant="caption" sx={{ color: "#64748B", fontWeight: 500 }}>({days} days)</Typography>
-              </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                <Box sx={{ width: 32, height: 32, borderRadius: 2, background: `${COLORS.primary}12`, border: `1px solid ${COLORS.primary}20`, display: "flex", alignItems: "center", justifyContent: "center" }}><CalendarTodayIcon sx={{ fontSize: 18, color: COLORS.primary }} /></Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "#0F172A" }}>
+                  Your Study Plan <Typography component="span" variant="caption" sx={{ color: "#64748B", fontWeight: 500 }}>({days} days)</Typography>
+                </Typography>
+              </Box>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => exportStudyPlanPDF({
+                  username: currentUsername,
+                  subject, level, days, hours, plan,
+                  dailyScores: JSON.parse(localStorage.getItem(`dailyScores_${currentUserId}`) || "[]"),
+                })}
+                sx={{
+                  borderColor: COLORS.primary, color: COLORS.primary,
+                  textTransform: "none", fontWeight: 600, borderRadius: 2,
+                  fontSize: "0.8rem", px: 2,
+                  "&:hover": { background: `${COLORS.primary}08` },
+                }}
+              >
+                Export PDF
+              </Button>
             </Box>
             <Grid container spacing={2}>
               {plan.map((day, i) => {
