@@ -174,4 +174,42 @@ Rules:
   }
 };
 
-module.exports = { getResources, generateStudyPlan, generateSmartPlan, generateQuiz };
+const generateCodingChallenge = async (req, res) => {
+  const { topic, subject } = req.body;
+  if (!topic) return res.status(400).json({ error: 'topic is required' });
+
+  try {
+    const data = await askGroq(`You are a coding challenge generator. A student just studied "${topic}"${subject ? ` (part of ${subject})` : ''}.
+
+Generate a beginner-friendly coding challenge to test their understanding.
+
+Return ONLY raw JSON:
+{
+  "title": "short challenge title",
+  "description": "clear problem description in 2-3 sentences",
+  "examples": [
+    { "input": "example input", "output": "expected output", "explanation": "why" }
+  ],
+  "starterCode": "// Write your solution here\\nfunction solution() {\\n  \\n}",
+  "testCases": [
+    { "input": "test input", "expected": "expected output" }
+  ],
+  "hint": "one helpful hint without giving away the answer",
+  "language": "javascript"
+}
+
+Rules:
+- Challenge must be directly related to "${topic}"
+- Keep it solvable in 10-15 minutes
+- Starter code must be valid JavaScript with a function to complete
+- Include 2 test cases
+- Return ONLY the JSON object`);
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Groq coding challenge error:', error.message);
+    res.status(500).json({ error: 'Failed to generate coding challenge' });
+  }
+};
+
+module.exports = { getResources, generateStudyPlan, generateSmartPlan, generateQuiz, generateCodingChallenge };

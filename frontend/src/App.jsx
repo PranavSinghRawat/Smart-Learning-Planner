@@ -38,6 +38,7 @@ import SmartPlan from "./pages/SmartPlan";
 import PerformancePredictor from "./pages/PerformancePredictor";
 import ResourcePanel from "./components/ResourcePanel";
 import QuizDialog from "./components/QuizDialog";
+import CodingChallengeDialog, { isCodingTopic } from "./components/CodingChallengeDialog";
 import { SUBJECTS_DB as CATALOG_DB } from "./data/subjects";
 
 const COLORS = {
@@ -107,8 +108,9 @@ function App() {
   const [smartPlanContext, setSmartPlanContext] = useState(null);
   const [showLanding, setShowLanding] = useState(true);
   const [completedFlash, setCompletedFlash] = useState(null); // "dayIdx-topicIdx"
-  const [quizOpen, setQuizOpen]       = useState(false);
-  const [quizTopic, setQuizTopic]     = useState({ name: "", subject: "", dayIdx: 0, topicIdx: 0 });
+  const [quizOpen, setQuizOpen]           = useState(false);
+  const [codingOpen, setCodingOpen]       = useState(false);
+  const [quizTopic, setQuizTopic]         = useState({ name: "", subject: "", dayIdx: 0, topicIdx: 0 });
 
   const getCustomSubjectsKey = (uid) => `customSubjects_${uid}`;
   const getStudyHistoryKey   = (uid) => `studyHistory_${uid}`;
@@ -293,9 +295,13 @@ function App() {
       showSnackbar('Topic uncompleted');
       return;
     }
-    // If checking — open quiz first
+    // If checking — open coding challenge for coding topics, quiz for others
     setQuizTopic({ name: topic.name, subject, dayIdx: dayIndex, topicIdx: subIndex });
-    setQuizOpen(true);
+    if (isCodingTopic(topic.name)) {
+      setCodingOpen(true);
+    } else {
+      setQuizOpen(true);
+    }
   };
 
   const handleQuizPass = (correct, total, skipped = false) => {
@@ -894,6 +900,15 @@ function App() {
         onPass={handleQuizPass}
         onFail={handleQuizFail}
         onClose={() => setQuizOpen(false)}
+      />
+
+      <CodingChallengeDialog
+        open={codingOpen}
+        topicName={quizTopic.name}
+        subject={quizTopic.subject || subject}
+        onPass={(correct, total, skipped) => { setCodingOpen(false); handleQuizPass(correct, total, skipped); }}
+        onFail={() => { setCodingOpen(false); handleQuizFail(); }}
+        onClose={() => setCodingOpen(false)}
       />
     </Box>
   );
