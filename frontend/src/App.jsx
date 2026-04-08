@@ -37,6 +37,7 @@ import Landing from "./pages/Landing";
 import SmartPlan from "./pages/SmartPlan";
 import PerformancePredictor from "./pages/PerformancePredictor";
 import ResourcePanel from "./components/ResourcePanel";
+import QuizDialog from "./components/QuizDialog";
 import { SUBJECTS_DB as CATALOG_DB } from "./data/subjects";
 
 const COLORS = {
@@ -106,6 +107,8 @@ function App() {
   const [smartPlanContext, setSmartPlanContext] = useState(null);
   const [showLanding, setShowLanding] = useState(true);
   const [completedFlash, setCompletedFlash] = useState(null); // "dayIdx-topicIdx"
+  const [quizOpen, setQuizOpen]       = useState(false);
+  const [quizTopic, setQuizTopic]     = useState({ name: "", subject: "", dayIdx: 0, topicIdx: 0 });
 
   const getCustomSubjectsKey = (uid) => `customSubjects_${uid}`;
   const getStudyHistoryKey   = (uid) => `studyHistory_${uid}`;
@@ -259,35 +262,65 @@ function App() {
   };
 
   // Save today's study score to localStorage for LSTM predictor
-  const saveDailyScore = (updatedPlan) => {
-    const total = updatedPlan.reduce((s, d) => s + d.topics.length, 0);
-    const done  = updatedPlan.reduce((s, d) => s + d.topics.filter(t => t.completed).length, 0);
-    const score = total === 0 ? 0 : parseFloat((done / total).toFixed(2));
-    const key = `dailyScores_${currentUserId}`;
-    const today = new Date().toISOString().split('T')[0];
-    const existing = JSON.parse(localStorage.getItem(key) || '[]');
-    // Update today's entry or add new one
-    const idx = existing.findIndex(e => e.date === today);
+  // quizBonus: extra weight added when topic is verified by quiz (0 = unverified, 1 = perfect quiz)
+  const saveDailyScore = (updatedPlan, quizBonus = 0) => {
+    const total    = updatedPlan.reduce((s, d) => s + d.topics.length, 0);
+    const done     = updatedPlan.reduce((s, d) => s + d.topics.filter(t => t.completed).length, 0);
+    const verified = updatedPlan.reduce((s, d) => s + d.topics.filter(t => t.verified).length, 0);
+    // Base score: completion ratio. Verified topics add a 10% bonus per verified topic
+    const baseScore    = total === 0 ? 0 : done / total;
+    const verifyBonus  = total === 0 ? 0 : (verified / total) * 0.1;
+    const score        = parseFloat(Math.min(1, baseScore + verifyBonus + quizBonus * 0.05).toFixed(2));
+    const key          = `dailyScores_${currentUserId}`;
+    const today        = new Date().toISOString().split('T')[0];
+    const existing     = JSON.parse(localStorage.getItem(key) || '[]');
+    const idx          = existing.findIndex(e => e.date === today);
     if (idx >= 0) existing[idx].score = score;
     else existing.push({ date: today, score });
-    // Keep only last 30 days
     const sorted = existing.sort((a, b) => a.date.localeCompare(b.date)).slice(-30);
     localStorage.setItem(key, JSON.stringify(sorted));
   };
 
   const toggleSubtopic = (dayIndex, subIndex) => {
+    const topic = plan[dayIndex].topics[subIndex];
+    // If unchecking — just uncheck directly
+    if (topic.completed) {
+      const updated = plan.map((d, di) =>
+        di !== dayIndex ? d : { ...d, topics: d.topics.map((t, ti) => ti !== subIndex ? t : { ...t, completed: false, verified: false }) }
+      );
+      setPlan(updated);
+      saveDailyScore(updated);
+      showSnackbar('Topic uncompleted');
+      return;
+    }
+    // If checking — open quiz first
+    setQuizTopic({ name: topic.name, subject, dayIdx: dayIndex, topicIdx: subIndex });
+    setQuizOpen(true);
+  };
+
+  const handleQuizPass = (correct, total, skipped = false) => {
+    setQuizOpen(false);
+    const { dayIdx, topicIdx } = quizTopic;
+    const quizScore = total > 0 ? correct / total : 0;
     const updated = plan.map((d, di) =>
-      di !== dayIndex ? d : { ...d, topics: d.topics.map((t, ti) => ti !== subIndex ? t : { ...t, completed: !t.completed }) }
+      di !== dayIdx ? d : {
+        ...d, topics: d.topics.map((t, ti) =>
+          ti !== topicIdx ? t : { ...t, completed: true, verified: !skipped && correct >= 2, quizScore }
+        )
+      }
     );
     setPlan(updated);
-    saveDailyScore(updated);
-    const nowCompleted = updated[dayIndex].topics[subIndex].completed;
-    if (nowCompleted) {
-      const key = `${dayIndex}-${subIndex}`;
-      setCompletedFlash(key);
-      setTimeout(() => setCompletedFlash(null), 700);
-    }
-    showSnackbar(nowCompleted ? 'Topic completed!' : 'Topic uncompleted');
+    saveDailyScore(updated, quizScore);
+    const key = `${dayIdx}-${topicIdx}`;
+    setCompletedFlash(key);
+    setTimeout(() => setCompletedFlash(null), 700);
+    if (skipped) showSnackbar('Topic marked complete (unverified)');
+    else if (correct >= 2) showSnackbar(`Topic verified! ${correct}/${total} correct`);
+  };
+
+  const handleQuizFail = () => {
+    setQuizOpen(false);
+    showSnackbar('Review this topic and try again', 'warning');
   };
 
   const dayProgress = (day) => {
@@ -749,16 +782,24 @@ function App() {
                               }}>
                               <ListItemIcon sx={{ minWidth: 40, mt: 0.5, cursor: "pointer" }} onClick={() => toggleSubtopic(i, j)}>
                                 {topic.completed
-                                  ? <CheckCircleIcon sx={{ color: COLORS.ahead, fontSize: 22, transition: "transform 0.2s", transform: isFlashing ? "scale(1.3)" : "scale(1)" }} />
+                                  ? <CheckCircleIcon sx={{ color: topic.verified ? COLORS.ahead : COLORS.track, fontSize: 22, transition: "transform 0.2s", transform: isFlashing ? "scale(1.3)" : "scale(1)" }} />
                                   : <RadioButtonUncheckedIcon sx={{ color: "#CBD5E1", fontSize: 22 }} />}
                               </ListItemIcon>
                               <ListItemText
                                 primary={
-                                  <Typography
-                                    onClick={() => toggleSubtopic(i, j)}
-                                    sx={{ fontWeight: 600, fontSize: "0.9rem", textDecoration: topic.completed ? "line-through" : "none", color: topic.completed ? "#94A3B8" : "#1E293B", cursor: "pointer" }}>
-                                    {topic.name}
-                                  </Typography>
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                    <Typography
+                                      onClick={() => toggleSubtopic(i, j)}
+                                      sx={{ fontWeight: 600, fontSize: "0.9rem", textDecoration: topic.completed ? "line-through" : "none", color: topic.completed ? "#94A3B8" : "#1E293B", cursor: "pointer" }}>
+                                      {topic.name}
+                                    </Typography>
+                                    {topic.verified && (
+                                      <Chip label="Verified" size="small" sx={{ height: 18, fontSize: "0.6rem", fontWeight: 700, background: "#D1FAE5", color: "#065F46" }} />
+                                    )}
+                                    {topic.completed && !topic.verified && (
+                                      <Chip label="Unverified" size="small" sx={{ height: 18, fontSize: "0.6rem", fontWeight: 700, background: "#FEF3C7", color: "#92400E" }} />
+                                    )}
+                                  </Box>
                                 }
                                 secondary={
                                   <Box component="span">
@@ -845,6 +886,15 @@ function App() {
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
         <Alert severity={snackbar.type} sx={{ borderRadius: 2 }}>{snackbar.message}</Alert>
       </Snackbar>
+
+      <QuizDialog
+        open={quizOpen}
+        topicName={quizTopic.name}
+        subject={quizTopic.subject || subject}
+        onPass={handleQuizPass}
+        onFail={handleQuizFail}
+        onClose={() => setQuizOpen(false)}
+      />
     </Box>
   );
 }

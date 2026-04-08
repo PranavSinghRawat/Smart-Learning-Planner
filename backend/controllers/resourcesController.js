@@ -139,4 +139,39 @@ Rules:
   }
 };
 
-module.exports = { getResources, generateStudyPlan, generateSmartPlan };
+const generateQuiz = async (req, res) => {
+  const { topic, subject } = req.body;
+  if (!topic) return res.status(400).json({ error: 'topic is required' });
+
+  try {
+    const data = await askGroq(`You are a quiz generator. A student just finished studying "${topic}"${subject ? ` (part of ${subject})` : ''}.
+
+Generate exactly 3 multiple choice questions to verify their understanding.
+
+Return ONLY raw JSON:
+{
+  "questions": [
+    {
+      "question": "clear question text",
+      "options": ["A) option1", "B) option2", "C) option3", "D) option4"],
+      "correct": "A",
+      "explanation": "brief explanation of why this is correct"
+    }
+  ]
+}
+
+Rules:
+- Questions must test actual understanding, not just memorization
+- One correct answer per question (A, B, C, or D)
+- Options must be plausible — no obviously wrong answers
+- Keep questions concise and clear
+- Return ONLY the JSON object`);
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Groq quiz error:', error.message);
+    res.status(500).json({ error: 'Failed to generate quiz' });
+  }
+};
+
+module.exports = { getResources, generateStudyPlan, generateSmartPlan, generateQuiz };

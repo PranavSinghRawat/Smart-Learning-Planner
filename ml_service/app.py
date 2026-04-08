@@ -59,7 +59,7 @@ def health():
             "mlp": {
                 "loaded": MLP_LOADED,
                 "type": "MLPRegressor (scikit-learn)",
-                "architecture": "Input(6) → Dense(64,ReLU) → Dense(32,ReLU) → Dense(16,ReLU) → Output(1)",
+                "architecture": "Input(7) → Dense(64,ReLU) → Dense(32,ReLU) → Dense(16,ReLU) → Output(1)",
                 "task": "Session effectiveness scoring",
             },
             "lstm": {
@@ -102,6 +102,7 @@ def score():
             float(s.get("prev_confidence",    0)),
             float(s.get("topic_weight",     0.5)),
             float(s.get("hours_available",    4)),
+            float(s.get("quiz_score",         0)),  # 0 = never quizzed
         ] for s in sessions]
 
         X = np.array(features)
