@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
 * {
   box-sizing: border-box;
 }
@@ -5,53 +7,84 @@
 body {
   margin: 0;
   font-family: "Inter", "Roboto", sans-serif;
-  background-color: #F8FAFC;
+  background-color: #fcfcfc;
+  background-image: url('/assets/study-bg.png');
+  background-attachment: fixed;
+  background-size: cover;
+  background-position: center;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+/* Global background overlay to ensure readability */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  z-index: -1;
+  pointer-events: none;
 }
 
 html {
   scroll-behavior: smooth;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #F1F5F9; }
-::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
+/* Custom scrollbar - Refined */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { 
+  background: #cbd5e1; 
+  border-radius: 10px; 
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Glassmorphism Styles */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07) !important;
+}
 
 /* Tab fade-in */
-.tab-content { animation: fadeIn 0.3s ease; }
+.tab-content { animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Landing page orb animations */
-@keyframes float1 {
-  0%, 100% { transform: translate(0, 0); }
-  50%       { transform: translate(40px, 60px); }
+/* Custom animations for the new Professional look */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes float2 {
-  0%, 100% { transform: translate(0, 0); }
-  50%       { transform: translate(-50px, 40px); }
+
+.animate-slide-up {
+  animation: slideUp 0.5s ease-out forwards;
 }
-@keyframes float3 {
-  0%, 100% { transform: translate(0, 0); }
-  50%       { transform: translate(30px, -50px); }
-}
+
 @keyframes shimmer {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-@keyframes pulse-ring {
-  0%   { transform: scale(1); opacity: 0.5; }
-  100% { transform: scale(1.5); opacity: 0; }
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
-@keyframes slideDown {
-  from { opacity: 0; transform: translateY(-8px); }
-  to   { opacity: 1; transform: translateY(0); }
+.shimmer-loader {
+  background: linear-gradient(90deg, #f0f0f0 25%, #f7f7f7 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
 }

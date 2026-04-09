@@ -2,27 +2,29 @@ import React, { useState, useEffect } from "react";
 import {
   Box, Card, CardContent, Typography, Button, Grid, Chip,
   Alert, CircularProgress, List, ListItem, LinearProgress,
+  Divider, Paper, useTheme
 } from "@mui/material";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import { motion } from "framer-motion";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
-const C = { primary: "#0F766E", secondary: "#06B6D4", accent: "#8B5CF6" };
 
 const TYPE_STYLE = {
-  study:    { bg: "#D1FAE5", color: "#065F46" },
-  revision: { bg: "#EFF6FF", color: "#1D4ED8" },
-  break:    { bg: "#FEF3C7", color: "#92400E" },
-  practice: { bg: "#F5F3FF", color: "#6D28D9" },
+  study:    { bg: "rgba(16, 185, 129, 0.1)", color: "#059669", icon: "📚" },
+  revision: { bg: "rgba(37, 99, 235, 0.1)",  color: "#2563eb", icon: "🔄" },
+  break:    { bg: "rgba(245, 158, 11, 0.1)", color: "#d97706", icon: "☕" },
+  practice: { bg: "rgba(139, 92, 246, 0.1)", color: "#7c3aed", icon: "💻" },
 };
 
 export default function SmartPlan({ token, userId, dayContext, onClearDay }) {
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const theme = useTheme();
 
   useEffect(() => {
     if (dayContext) generateForDay(dayContext);
@@ -48,272 +50,227 @@ export default function SmartPlan({ token, userId, dayContext, onClearDay }) {
     }
   };
 
-  // ── Empty state ──────────────────────────────────────────────────────────
   if (!dayContext && !plan && !loading) {
     return (
-      <Box>
+      <Box className="animate-slide-up">
         <PageHeader
-          icon={<PsychologyIcon sx={{ fontSize: 28, color: C.primary }} />}
-          title="Smart Plan"
-          subtitle="AI-generated hour-by-hour study strategy for any day"
+          icon={<PsychologyIcon />}
+          title="Smart Plan AI"
+          subtitle="Precision hour-by-hour study strategies optimized for your goals"
         />
-        <Box sx={{
-          mt: 6, textAlign: "center", py: 10,
-          border: "1px dashed #CBD5E1", borderRadius: 4,
-          background: "linear-gradient(135deg, #F0FDF4, #F0F9FF)",
+        <Paper className="glass-panel" sx={{
+          mt: 6, textAlign: "center", py: 12,
+          border: "1px dashed rgba(15, 118, 110, 0.3)", borderRadius: 8,
+          background: "rgba(255, 255, 255, 0.4)",
         }}>
           <Box sx={{
-            width: 80, height: 80, borderRadius: "50%",
-            background: `linear-gradient(135deg, ${C.primary}15, ${C.secondary}15)`,
-            border: `2px solid ${C.primary}20`,
+            width: 100, height: 100, borderRadius: 5,
+            background: "linear-gradient(135deg, rgba(15, 118, 110, 0.1), rgba(14, 165, 233, 0.1))",
             display: "flex", alignItems: "center", justifyContent: "center",
-            mx: "auto", mb: 3, fontSize: "2rem",
+            mx: "auto", mb: 4, fontSize: "3rem",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.05)"
           }}>
-            <PsychologyIcon sx={{ fontSize: 36, color: C.primary }} />
+            🧠
           </Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B", mb: 1 }}>
-            No day selected yet
+          <Typography variant="h5" sx={{ fontWeight: 800, color: "#1e293b", mb: 2 }}>
+            Awaiting Strategy Definition
           </Typography>
-          <Typography variant="body2" sx={{ color: "#64748B", maxWidth: 380, mx: "auto", lineHeight: 1.7 }}>
-            Go to Study Planner, generate a plan, then click the
-            <Box component="span" sx={{ color: C.primary, fontWeight: 600 }}> Smart Plan </Box>
-            button on any day card.
+          <Typography variant="body1" sx={{ color: "#64748b", maxWidth: 450, mx: "auto", lineHeight: 1.8 }}>
+            Navigate to the <Box component="span" sx={{ color: "primary.main", fontWeight: 700 }}>Study Planner</Box>, 
+            configure your sprint, and initiate the 
+            <Box component="span" sx={{ fontWeight: 700 }}> Smart Plan </Box> generator for any specific day.
           </Typography>
-        </Box>
+        </Paper>
       </Box>
     );
   }
 
-  // ── Loading state ────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <Box>
+      <Box className="animate-slide-up">
         <PageHeader
-          icon={<PsychologyIcon sx={{ fontSize: 28, color: C.primary }} />}
-          title="Smart Plan"
-          subtitle="Generating your personalized strategy..."
+          icon={<PsychologyIcon />}
+          title="AI Synthesis"
+          subtitle="Processing peak-performance neural strategies..."
         />
-        <Box sx={{ mt: 4 }}>
+        <Box sx={{ mt: 6, display: 'flex', flexDirection: 'column', gap: 3 }}>
           {[1, 2, 3].map(i => (
-            <Card key={i} sx={{ mb: 2, borderRadius: 3, border: "1px solid #E2E8F0" }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", gap: 2, alignItems: "center", mb: 2 }}>
-                  <Box sx={{ width: 60, height: 24, borderRadius: 1, background: "#E2E8F0", animation: "pulse 1.5s ease-in-out infinite" }} />
-                  <Box sx={{ flex: 1, height: 16, borderRadius: 1, background: "#E2E8F0", animation: "pulse 1.5s ease-in-out infinite" }} />
-                </Box>
-                <Box sx={{ height: 12, borderRadius: 1, background: "#F1F5F9", mb: 1.5, animation: "pulse 1.5s ease-in-out infinite" }} />
-                <Box sx={{ height: 12, borderRadius: 1, background: "#F1F5F9", width: "70%", animation: "pulse 1.5s ease-in-out infinite" }} />
+            <Card key={i} className="glass-card" sx={{ opacity: 0.6 + (i * 0.1) }}>
+              <CardContent sx={{ p: 4 }}>
+                <Box className="shimmer-loader" sx={{ height: 32, width: '40%', borderRadius: 2, mb: 3 }} />
+                <Box className="shimmer-loader" sx={{ height: 16, width: '90%', borderRadius: 1, mb: 1.5 }} />
+                <Box className="shimmer-loader" sx={{ height: 16, width: '70%', borderRadius: 1 }} />
               </CardContent>
             </Card>
           ))}
-          <Box sx={{ textAlign: "center", mt: 3 }}>
-            <CircularProgress size={28} sx={{ color: C.primary }} />
-            <Typography variant="body2" sx={{ color: "#64748B", mt: 1.5 }}>
-              Groq AI is building your hour-by-hour schedule...
-            </Typography>
-          </Box>
         </Box>
-        <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
       </Box>
     );
   }
 
   return (
-    <Box>
-      {/* Header */}
-      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 4 }}>
+    <Box className="animate-slide-up">
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 6, gap: 2 }}>
         <PageHeader
-          icon={<PsychologyIcon sx={{ fontSize: 28, color: C.primary }} />}
-          title="Smart Plan"
-          subtitle={plan ? `Day ${plan.dayContext?.day} · ${plan.dayContext?.subject}` : "AI-generated study strategy"}
+          icon={<PsychologyIcon />}
+          title="Cognitive Strategy"
+          subtitle={plan ? `Session Analysis for ${plan.dayContext?.subject} · Day ${plan.dayContext?.day}` : "Advanced Study Architecture"}
         />
         {onClearDay && plan && (
           <Button
+            variant="outlined"
             startIcon={<ArrowBackIcon />}
             onClick={onClearDay}
             sx={{
-              color: "#64748B", fontWeight: 600, textTransform: "none",
-              borderRadius: 2, border: "1px solid #E2E8F0",
-              "&:hover": { background: "#F8FAFC", borderColor: C.primary, color: C.primary },
+              borderRadius: 3, border: "2px solid rgba(15, 118, 110, 0.2)",
+              fontWeight: 700, px: 3,
+              "&:hover": { border: "2px solid #0f766e", background: "rgba(15, 118, 110, 0.05)" }
             }}
           >
-            Back
+            Back to Overview
           </Button>
         )}
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 4, borderRadius: 4, fontWeight: 600 }}>{error}</Alert>}
 
       {plan && !loading && (
-        <>
-          {/* Stats row */}
-          <Grid container spacing={2} sx={{ mb: 3 }}>
-            {[
-              { label: "Day", value: `Day ${plan.dayContext?.day}`, color: C.primary, bg: "#F0FDF4" },
-              { label: "Subject", value: plan.dayContext?.subject || "—", color: C.secondary, bg: "#F0F9FF" },
-              { label: "Topics", value: `${plan.dayContext?.topics?.length || 0} topics`, color: C.accent, bg: "#F5F3FF" },
-              { label: "Duration", value: `${plan.dayContext?.hours}h`, color: "#F59E0B", bg: "#FFFBEB" },
-            ].map(s => (
-              <Grid item xs={6} sm={3} key={s.label}>
-                <Box sx={{
-                  p: 2, borderRadius: 3, background: s.bg,
-                  border: `1px solid ${s.color}20`, textAlign: "center",
-                  transition: "transform 0.2s",
-                  "&:hover": { transform: "translateY(-2px)" },
-                }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: s.color, fontSize: "1rem" }}>{s.value}</Typography>
-                  <Typography variant="caption" sx={{ color: "#64748B" }}>{s.label}</Typography>
-                </Box>
-              </Grid>
-            ))}
+        <Grid container spacing={3}>
+          {/* Key Metrics Bento */}
+          <Grid item xs={12}>
+            <Grid container spacing={3}>
+              {[
+                { label: "Complexity", value: plan.dayContext?.subject, color: "#1e293b", bg: "rgba(255,255,255,0.6)" },
+                { label: "Target Modules", value: plan.dayContext?.topics?.length, color: "#0f766e", bg: "rgba(15, 118, 110, 0.05)" },
+                { label: "Neural Load", value: `${plan.dayContext?.hours}h Total`, color: "#0ea5e9", bg: "rgba(14, 165, 233, 0.05)" },
+                { label: "Status", value: "Optimized", color: "#10b981", bg: "rgba(16, 185, 129, 0.05)" },
+              ].map((s, idx) => (
+                <Grid item xs={6} sm={3} key={idx}>
+                  <Box className="glass-card" component={motion.div} whileHover={{ y: -4 }} sx={{
+                    p: 3, borderRadius: 5, textAlign: "center",
+                  }}>
+                    <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>{s.label}</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: s.color, mt: 0.5 }}>{s.value}</Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
           </Grid>
 
-          {/* Overview */}
-          {plan.overview && (
-            <Card sx={{ mb: 3, borderRadius: 3, background: "linear-gradient(135deg, #F0FDF4, #F0F9FF)", border: `1px solid ${C.primary}20` }}>
-              <CardContent sx={{ p: 3 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
-                  <AutoAwesomeIcon sx={{ color: C.primary, fontSize: 20 }} />
-                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: C.primary }}>
-                    Strategy Overview
-                  </Typography>
+          {/* AI Strategy Overview */}
+          <Grid item xs={12}>
+            <Card className="glass-card" component={motion.div} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
+              <CardContent sx={{ p: 4 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 2 }}>
+                  <Box sx={{ p: 1, borderRadius: 2, background: 'rgba(15, 118, 110, 0.1)', color: 'primary.main', display: 'flex' }}>
+                    <AutoAwesomeIcon />
+                  </Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800 }}>AI Strategic Narrative</Typography>
                 </Box>
-                <Typography variant="body2" sx={{ color: "#374151", lineHeight: 1.8 }}>{plan.overview}</Typography>
+                <Typography variant="body1" sx={{ color: "#334155", lineHeight: 1.8, fontStyle: 'italic' }}>
+                  "{plan.overview}"
+                </Typography>
               </CardContent>
             </Card>
-          )}
+          </Grid>
 
-          {/* Schedule */}
-          {plan.schedule?.length > 0 && (
-            <Card sx={{ mb: 3, borderRadius: 3, border: "1px solid #E2E8F0", overflow: "hidden" }}>
-              <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", gap: 1.5 }}>
-                <AccessTimeIcon sx={{ color: C.primary, fontSize: 20 }} />
-                <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B", fontSize: "1rem" }}>
-                  Hour-by-Hour Schedule
-                </Typography>
+          {/* Timeline & Breakdown Side-by-Side */}
+          <Grid item xs={12} lg={7}>
+            <Card className="glass-card" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <Box sx={{ p: 3, borderBottom: '1px solid rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', gap: 2 }}>
+                <AccessTimeIcon color="primary" />
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>Precision Schedule</Typography>
               </Box>
-              <List sx={{ p: 0 }}>
+              <List sx={{ p: 0, flexGrow: 1 }}>
                 {plan.schedule.map((slot, i) => {
-                  const ts = TYPE_STYLE[slot.type] || TYPE_STYLE.study;
+                  const s = TYPE_STYLE[slot.type] || TYPE_STYLE.study;
                   return (
-                    <ListItem key={i} sx={{
-                      px: 3, py: 2,
-                      borderBottom: i < plan.schedule.length - 1 ? "1px solid #F8FAFC" : "none",
-                      alignItems: "flex-start",
-                      transition: "background 0.15s",
-                      "&:hover": { background: "#FAFBFC" },
+                    <ListItem key={i} sx={{ 
+                      px: 3, py: 3, borderBottom: '1px solid rgba(0,0,0,0.03)',
+                      '&:last-child': { borderBottom: 'none' }
                     }}>
-                      <Box sx={{ minWidth: 90, mr: 2, pt: 0.3 }}>
-                        <Typography variant="caption" sx={{
-                          fontWeight: 700, color: C.primary,
-                          background: `${C.primary}10`, px: 1, py: 0.3,
-                          borderRadius: 1, fontSize: "0.7rem", whiteSpace: "nowrap",
-                        }}>
+                      <Box sx={{ display: 'flex', gap: 3, width: '100%', alignItems: 'center' }}>
+                        <Typography variant="subtitle2" sx={{ minWidth: 80, fontWeight: 800, color: 'primary.main', opacity: 0.8 }}>
                           {slot.time}
                         </Typography>
+                        <Box sx={{ fontSize: '1.5rem', opacity: 0.8 }}>{s.icon}</Box>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body1" sx={{ fontWeight: 700, color: '#1e293b' }}>{slot.activity}</Typography>
+                          {slot.tip && <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>{slot.tip}</Typography>}
+                        </Box>
+                        <Chip label={slot.type} size="small" sx={{ 
+                          bgcolor: s.bg, color: s.color, fontWeight: 800, 
+                          fontSize: '0.65rem', textTransform: 'uppercase', height: 24 
+                        }} />
                       </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 600, color: "#1E293B", mb: 0.5 }}>
-                          {slot.activity}
-                        </Typography>
-                        {slot.tip && (
-                          <Typography variant="caption" sx={{ color: "#64748B", display: "block" }}>
-                            {slot.tip}
-                          </Typography>
-                        )}
-                      </Box>
-                      {slot.type && (
-                        <Chip
-                          label={slot.type}
-                          size="small"
-                          sx={{ background: ts.bg, color: ts.color, fontSize: "0.65rem", fontWeight: 600, height: 22 }}
-                        />
-                      )}
                     </ListItem>
                   );
                 })}
               </List>
             </Card>
-          )}
+          </Grid>
 
-          {/* Topic breakdown */}
-          {plan.topicBreakdown?.length > 0 && (
-            <Card sx={{ mb: 3, borderRadius: 3, border: "1px solid #E2E8F0", overflow: "hidden" }}>
-              <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #F1F5F9" }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: "#1E293B", fontSize: "1rem" }}>
-                  Topic Breakdown
-                </Typography>
-              </Box>
-              <Box sx={{ p: 3 }}>
-                <Grid container spacing={2}>
-                  {plan.topicBreakdown.map((t, i) => (
-                    <Grid item xs={12} sm={6} key={i}>
-                      <Box sx={{
-                        p: 2.5, background: "#F8FAFC", borderRadius: 2.5,
-                        border: "1px solid #E2E8F0",
-                        transition: "all 0.2s",
-                        "&:hover": { border: `1px solid ${C.primary}30`, background: "#F0FDF4" },
-                      }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B", mb: 1.5 }}>
-                          {t.topic}
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 1, mb: 1.5, flexWrap: "wrap" }}>
-                          <Chip label={`${t.duration} min`} size="small" sx={{ background: "#EFF6FF", color: C.primary, fontSize: "0.65rem", height: 20 }} />
-                          <Chip label={t.approach} size="small" sx={{ background: "#D1FAE5", color: "#065F46", fontSize: "0.65rem", height: 20 }} />
+          <Grid item xs={12} lg={5}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Detailed Topics Breakdown */}
+              <Card className="glass-card">
+                <CardContent sx={{ p: 4 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 3 }}>Module Breakdown</Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    {plan.topicBreakdown?.map((t, i) => (
+                      <Box key={i} sx={{ p: 2.5, borderRadius: 4, background: 'rgba(255,255,255,0.4)', border: '1px solid rgba(0,0,0,0.05)' }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 800, mb: 1.5 }}>{t.topic}</Typography>
+                        <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                          <Chip label={`${t.duration}m`} size="small" variant="outlined" sx={{ fontWeight: 700, height: 22 }} />
+                          <Chip label={t.approach} size="small" sx={{ bgcolor: 'primary.main', color: '#fff', fontWeight: 700, height: 22 }} />
                         </Box>
-                        {t.resources && (
-                          <Typography variant="caption" sx={{ color: "#64748B" }}>{t.resources}</Typography>
-                        )}
+                        <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1.5, display: 'block' }}>{t.resources}</Typography>
                       </Box>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
-            </Card>
-          )}
-
-          {/* Tips */}
-          {plan.tips?.length > 0 && (
-            <Card sx={{ borderRadius: 3, background: "#FFFBEB", border: "1px solid #FDE68A", overflow: "hidden" }}>
-              <Box sx={{ px: 3, py: 2, borderBottom: "1px solid #FEF3C7" }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "#92400E" }}>
-                  Pro Tips for Today
-                </Typography>
-              </Box>
-              <Box sx={{ p: 3 }}>
-                {plan.tips.map((tip, i) => (
-                  <Box key={i} sx={{ display: "flex", gap: 1.5, mb: i < plan.tips.length - 1 ? 1.5 : 0 }}>
-                    <CheckCircleIcon sx={{ color: "#F59E0B", fontSize: 18, mt: 0.2, flexShrink: 0 }} />
-                    <Typography variant="body2" sx={{ color: "#78350F", lineHeight: 1.6 }}>{tip}</Typography>
+                    ))}
                   </Box>
-                ))}
-              </Box>
-            </Card>
-          )}
-        </>
+                </CardContent>
+              </Card>
+
+              {/* Cognitive Anchors (Tips) */}
+              <Card sx={{ bgcolor: '#0f766e', color: '#fff', borderRadius: 6, position: 'relative', overflow: 'hidden' }}>
+                <Box sx={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', filter: 'blur(20px)' }} />
+                <CardContent sx={{ p: 4, position: 'relative', zIndex: 1 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <CheckCircleIcon /> Cognitive Anchors
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                    {plan.tips?.map((tip, i) => (
+                      <Box key={i} sx={{ display: 'flex', gap: 2 }}>
+                        <Typography variant="body2" sx={{ opacity: 0.9, lineHeight: 1.7, fontWeight: 500 }}>• {tip}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                </CardContent>
+              </Card>
+            </Box>
+          </Grid>
+        </Grid>
       )}
     </Box>
   );
 }
 
-// Reusable page header component
 function PageHeader({ icon, title, subtitle }) {
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
       <Box sx={{
-        width: 48, height: 48, borderRadius: 2.5,
-        background: "linear-gradient(135deg, #F0FDF4, #F0F9FF)",
-        border: "1px solid #D1FAE5",
+        width: 60, height: 60, borderRadius: 4,
+        background: "rgba(15, 118, 110, 0.1)",
+        color: "primary.main",
         display: "flex", alignItems: "center", justifyContent: "center",
-        flexShrink: 0,
+        fontSize: "2rem", flexShrink: 0,
+        boxShadow: "0 8px 16px rgba(15, 118, 110, 0.1)"
       }}>
         {icon}
       </Box>
       <Box>
-        <Typography variant="h5" sx={{ fontWeight: 700, color: "#0F172A", lineHeight: 1.2 }}>
-          {title}
-        </Typography>
-        <Typography variant="caption" sx={{ color: "#64748B" }}>{subtitle}</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -1, color: "#0f172a" }}>{title}</Typography>
+        <Typography variant="subtitle1" sx={{ color: "#64748b", fontWeight: 500, mt: 0.5 }}>{subtitle}</Typography>
       </Box>
     </Box>
   );
