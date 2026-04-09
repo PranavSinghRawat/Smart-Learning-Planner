@@ -97,7 +97,7 @@ async function runTests() {
     // ── TC-UI-004: Study Planner tab is active by default ─────────────────
     try {
       await driver.wait(
-        until.elementLocated(By.css("input[placeholder*='learn' i]")),
+        until.elementLocated(By.css("input[placeholder*='Patterns' i]")),
         TIMEOUT
       );
       log("PASS", "TC-UI-004: Study Planner tab active after login");
@@ -108,13 +108,13 @@ async function runTests() {
     // ── TC-UI-005: Generate a study plan ──────────────────────────────────
     try {
       const subjectInput = await driver.wait(
-        until.elementLocated(By.css("input[placeholder*='learn' i]")),
+        until.elementLocated(By.css("input[placeholder*='Patterns' i]")),
         TIMEOUT
       );
       await subjectInput.clear();
       await subjectInput.sendKeys("DSA");
 
-      await driver.findElement(By.xpath("//button[contains(text(),'Generate')]")).click();
+      await driver.findElement(By.xpath("//button[contains(normalize-space(),'Start Sprint')]")).click();
       await sleep(5000);
 
       await driver.wait(

@@ -323,12 +323,48 @@ const executeCode = async (req, res) => {
 };
 
 const generateSmartPlan = async (req, res) => {
-  const { subject, days, hours, level } = req.body;
+  const { day, topics, subject, hours } = req.body;
+  
+  if (!subject || !topics || !hours) {
+    return res.status(400).json({ error: 'Day context missing required fields' });
+  }
+
+  const topicList = Array.isArray(topics) ? topics.map(t => t.name).join(', ') : topics;
+
   try {
-    const data = await askGroq(`Create a ${days}-day smart plan for ${subject} at ${level}. Return ONLY JSON: {"plan": []}`);
+    const data = await askGroq(`You are an elite academic architect. Create an hour-by-hour study strategy for Day ${day} focusing on:
+Subject: ${subject}
+Topics: ${topicList}
+Total Duration: ${hours} hours
+
+Return ONLY raw, valid JSON matching this exact schema:
+{
+  "overview": "A 2-3 sentence strategic overview of what will be achieved today",
+  "schedule": [
+    {
+      "time": "e.g., 09:00 - 10:00",
+      "activity": "Detailed description of what to do",
+      "type": "study | revision | break | practice",
+      "tip": "A quick psychological or method tip"
+    }
+  ],
+  "topicBreakdown": [
+    {
+      "topic": "Name of topic covered",
+      "duration": "Integer representing minutes",
+      "approach": "e.g., Active Recall, Feynman Technique",
+      "resources": "Suggest what to read or watch"
+    }
+  ],
+  "tips": [
+    "String tip 1",
+    "String tip 2"
+  ]
+}`);
     res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ error: 'Failed' });
+    console.error('Groq Smart Plan Error:', error.message);
+    res.status(500).json({ error: 'Failed to generate personalized smart strategy' });
   }
 };
 
