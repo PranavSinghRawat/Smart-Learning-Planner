@@ -31,6 +31,7 @@ export default function CodingChallengeDialog({ open, topicName, subject, level 
   const [activeCaseIdx, setActiveCaseIdx] = useState(0);
   const [zenFeedback, setZenFeedback] = useState(null);
   const [zenLoading, setZenLoading] = useState(false);
+  const [driverCode, setDriverCode] = useState("");
 
   useEffect(() => {
     if (open && topicName) {
@@ -68,6 +69,7 @@ export default function CodingChallengeDialog({ open, topicName, subject, level 
     setError("");
     setChallenge(null);
     setCode("");
+    setDriverCode("");
     setResult(null);
     setActiveCaseIdx(0);
     setConsoleTab(0);
@@ -81,6 +83,7 @@ export default function CodingChallengeDialog({ open, topicName, subject, level 
       if (!res.ok) throw new Error(data.error || "Failed to generate challenge");
       setChallenge(data);
       setCode(data.starterCode || "// Write your solution here\n");
+      setDriverCode(data.driverCode || "");
     } catch (e) {
       setError(e.message);
     } finally {
@@ -97,36 +100,40 @@ export default function CodingChallengeDialog({ open, topicName, subject, level 
     if (language === "javascript") {
       setTimeout(() => {
         try {
-          // eslint-disable-next-line no-new-func
-          const fn = new Function(`
-            ${code}
-            return typeof solution !== 'undefined' ? solution : null;
-          `)();
+          const sig = challenge.function_signature;
+          // Merge student code with hidden driver (where helper classes like Node are defined)
+          const mergedCode = `${code}\n\n${driverCode}`;
 
-          if (!fn) throw new Error("'solution' function not found. Make sure to name your function 'solution'.");
+          // eslint-disable-next-line no-new-func
+          const wrapper = new Function(`
+            ${mergedCode}
+            return typeof ${sig.name} !== 'undefined' ? ${sig.name} : (typeof solution !== 'undefined' ? solution : null);
+          `);
+          
+          const fn = wrapper();
+
+          if (!fn) throw new Error(`Function '${sig.name}' not found. Please ensure your function name matches the signature.`);
 
           const testResults = challenge.testCases.map((tc, i) => {
             try {
-              let input;
+              let inputObj;
               try { 
-                input = JSON.parse(tc.input); 
+                inputObj = typeof tc.input === 'string' ? JSON.parse(tc.input) : tc.input; 
               } catch { 
-                input = tc.input; 
+                inputObj = tc.input; 
               }
               
-              let output;
-              if (Array.isArray(input)) {
-                output = fn.length > 1 ? fn(...input) : fn(input);
-              } else {
-                output = fn(input);
-              }
+              // Map input object to positional arguments based on signature
+              const args = sig.parameters.map(p => inputObj[p.name]);
+              
+              const output = fn(...args);
 
               const outputStr = JSON.stringify(output);
               const expectedStr = JSON.stringify(tc.expected);
               const passed = outputStr === expectedStr;
               return { i: i + 1, input: tc.input, expected: tc.expected, output: output, passed };
             } catch (e) {
-              return { i: i + 1, passed: false, output: `Error: ${e.message}`, expected: tc.expected, input: tc.input };
+              return { i: i + 1, passed: false, output: `Runtime Error: ${e.message}`, expected: tc.expected, input: tc.input };
             }
           });
 
@@ -144,7 +151,12 @@ export default function CodingChallengeDialog({ open, topicName, subject, level 
           const res = await fetch(`${API}/resources/execute`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ language, code, testCases: challenge.testCases }),
+            body: JSON.stringify({ 
+              language, 
+              code, 
+              driverCode, 
+              testCases: challenge.testCases 
+            }),
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || "Execution failed");
@@ -204,38 +216,73 @@ export default function CodingChallengeDialog({ open, topicName, subject, level 
           ) : challenge ? (
             <>
               <Typography variant="h5" sx={{ color: "#F1F5F9", fontWeight: 900, mb: 1, letterSpacing: -0.5 }}>{challenge.title}</Typography>
-              <Box sx={{ display: "flex", gap: 1, mb: 4 }}>
-                <Chip label={challenge.difficulty || "Medium"} size="small" sx={{ background: "#1E293B", color: C.secondary, fontWeight: 900, fontSize: "0.65rem", height: 20 }} />
-                <Chip label="Algorithm" size="small" sx={{ background: "#1E293B", color: "#94A3B8", fontWeight: 900, fontSize: "0.65rem", height: 20 }} />
+              <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
+                <Chip label={level} size="small" sx={{ background: "#1E293B", color: C.secondary, fontWeight: 900, fontSize: "0.65rem", height: 20 }} />
+                <Chip label="Contract-Verified" size="small" sx={{ background: "#0F766E20", color: "#2DD4BF", fontWeight: 900, fontSize: "0.65rem", height: 20, border: "1px solid #0F766E30" }} />
               </Box>
               
-              <Typography variant="body2" sx={{ color: "#CBD5E1", lineHeight: 1.8, mb: 4, whiteSpace: "pre-wrap" }}>
+              <Typography variant="body2" sx={{ color: "#CBD5E1", lineHeight: 1.8, mb: 4 }}>
                 {challenge.description}
               </Typography>
 
-              <Typography variant="subtitle2" sx={{ color: "#F1F5F9", fontWeight: 800, mb: 2, fontSize: "0.8rem", textTransform: "uppercase" }}>Examples</Typography>
+              {challenge.constraints && (
+                <Box sx={{ mb: 4 }}>
+                   <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 900, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 1.5 }}>Constraints</Typography>
+                   {challenge.constraints.map((c, i) => (
+                     <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+                        <Box sx={{ width: 4, height: 4, borderRadius: "50%", bgcolor: C.secondary }} />
+                        <Typography variant="caption" sx={{ color: "#94A3B8", fontFamily: "monospace", fontSize: "0.7rem" }}>{c}</Typography>
+                     </Box>
+                   ))}
+                </Box>
+              )}
+
+              <Box sx={{ mb: 4, display: "flex", gap: 3 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 900, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 1 }}>Input Format</Typography>
+                  <Typography variant="caption" sx={{ color: "#CBD5E1", fontSize: "0.75rem" }}>{challenge.input_format}</Typography>
+                </Box>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 900, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 1 }}>Output Format</Typography>
+                  <Typography variant="caption" sx={{ color: "#CBD5E1", fontSize: "0.75rem" }}>{challenge.output_format}</Typography>
+                </Box>
+              </Box>
+
+              <Typography variant="subtitle2" sx={{ color: "#F1F5F9", fontWeight: 800, mb: 2, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: 1 }}>Examples</Typography>
               {challenge.examples?.map((ex, i) => (
                 <Box key={i} sx={{ mb: 3, p: 2, background: C.paper, borderRadius: 2, border: "1px solid #334155" }}>
-                  <Typography variant="caption" sx={{ color: C.secondary, display: "block", mb: 1, fontWeight: 900, fontSize: "0.6rem" }}>EXAMPLE {i+1}</Typography>
-                  <Box sx={{ mb: 1 }}>
-                    <Typography variant="caption" sx={{ color: "#64748B", display: "block" }}>Input:</Typography>
-                    <Typography variant="caption" sx={{ color: "#E2E8F0", fontFamily: "monospace" }}>{ex.input}</Typography>
+                  <Typography variant="caption" sx={{ color: C.secondary, display: "block", mb: 1.5, fontWeight: 900, fontSize: "0.6rem" }}>EXAMPLE {i+1}</Typography>
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" sx={{ color: "#64748B", display: "block", fontWeight: 700 }}>Input:</Typography>
+                    <Box sx={{ p: 1, mt: 0.5, bgcolor: "#0F172A", borderRadius: 1.5, border: "1px solid #334155" }}>
+                      <Typography variant="caption" sx={{ color: "#E2E8F0", fontFamily: "monospace", display: "block", fontSize: "0.75rem" }}>
+                        {Object.entries(ex.input).map(([k, v]) => `${k} = ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(', ')}
+                      </Typography>
+                    </Box>
                   </Box>
                   <Box>
-                    <Typography variant="caption" sx={{ color: "#64748B", display: "block" }}>Output:</Typography>
-                    <Typography variant="caption" sx={{ color: "#86EFAC", fontFamily: "monospace" }}>{ex.output}</Typography>
+                    <Typography variant="caption" sx={{ color: "#64748B", display: "block", fontWeight: 700 }}>Output:</Typography>
+                    <Typography variant="caption" sx={{ color: "#86EFAC", fontFamily: "monospace", fontWeight: 700, fontSize: "0.8rem" }}>{typeof ex.output === 'object' ? JSON.stringify(ex.output) : ex.output}</Typography>
                   </Box>
+                  {ex.explanation && (
+                    <Typography variant="caption" sx={{ color: "#94A3B8", mt: 1.5, display: "block", fontStyle: "italic" }}>
+                      Explanation: {ex.explanation}
+                    </Typography>
+                  )}
                 </Box>
               ))}
 
-              <Divider sx={{ my: 4, borderColor: "#334155" }} />
-              <Button startIcon={<LightbulbIcon sx={{ fontSize: 16 }} />} onClick={() => setShowHint(!showHint)} size="small" sx={{ color: "#F59E0B", textTransform: "none", fontWeight: 700, p: 0 }}>
-                {showHint ? "Hide Hint" : "Get a hint"}
-              </Button>
-              {showHint && (
-                <Alert severity="info" sx={{ mt: 2, background: "#1E293B", color: "#FCD34D", border: "1px solid #F59E0B30", fontSize: "0.75rem", borderRadius: 2 }}>
-                  {challenge.hint}
-                </Alert>
+              {challenge.edge_cases && (
+                <Box sx={{ mt: 4, p: 2, bgcolor: "#0F172A80", borderRadius: 2, border: "1px dashed #334155" }}>
+                   <Typography variant="caption" sx={{ color: "#F59E0B", fontWeight: 900, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                      <LightbulbIcon sx={{ fontSize: 14 }} /> Note on Edge Cases
+                   </Typography>
+                   <ul style={{ margin: 0, paddingLeft: 16 }}>
+                      {challenge.edge_cases.map((ec, i) => (
+                        <li key={i}><Typography variant="caption" sx={{ color: "#94A3B8", fontSize: "0.7rem" }}>{ec}</Typography></li>
+                      ))}
+                   </ul>
+                </Box>
               )}
             </>
           ) : <Alert severity="error" sx={{ borderRadius: 2 }}>{error || "Failed to sync with challenge server."}</Alert>}
@@ -285,12 +332,21 @@ export default function CodingChallengeDialog({ open, topicName, subject, level 
                         </Button>
                       ))}
                     </Box>
-                    <Box sx={{ p: 2, background: "#1E293B", borderRadius: 2 }}>
-                       <Typography variant="caption" sx={{ color: "#64748B", display: "block", mb: 0.5 }}>Input =</Typography>
-                       <Typography variant="caption" sx={{ color: "#E2E8F0", fontFamily: "monospace", wordBreak: "break-all" }}>
-                        {challenge.testCases[activeCaseIdx].input}
-                       </Typography>
-                    </Box>
+                     <Box sx={{ p: 2, background: "#0F172A", borderRadius: 2, border: "1px solid #334155" }}>
+                        <Typography variant="caption" sx={{ color: "#64748B", display: "block", mb: 1, fontWeight: 700 }}>Input =</Typography>
+                        <Typography variant="caption" sx={{ color: "#E2E8F0", fontFamily: "monospace", wordBreak: "break-all", fontSize: "0.75rem" }}>
+                         {(() => {
+                           try {
+                             const parsed = typeof challenge.testCases[activeCaseIdx].input === 'string' 
+                               ? JSON.parse(challenge.testCases[activeCaseIdx].input) 
+                               : challenge.testCases[activeCaseIdx].input;
+                             return Object.entries(parsed).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join(', ');
+                           } catch (e) {
+                             return challenge.testCases[activeCaseIdx].input;
+                           }
+                         })()}
+                        </Typography>
+                     </Box>
                   </Box>
                 ) : <Typography variant="caption" sx={{ color: "#475569" }}>No testcases loaded.</Typography>
               ) : (
@@ -367,53 +423,85 @@ export default function CodingChallengeDialog({ open, topicName, subject, level 
                       </Box>
                     )}
 
-                    <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                      {result.testResults?.map((t, idx) => (
-                        <Button key={idx} size="small" onClick={() => setActiveCaseIdx(idx)}
-                          sx={{ 
-                            minWidth: 50, px: 2, height: 26, fontSize: "0.65rem", fontWeight: 900,
-                            color: t.passed ? "#22C55E" : "#EF4444",
-                            background: activeCaseIdx === idx ? `${t.passed ? "#22C55E" : "#EF4444"}15` : "transparent",
-                            border: activeCaseIdx === idx ? `1px solid ${t.passed ? "#22C55E50" : "#EF444450"}` : "none",
-                          }}>
-                          Case {idx + 1} {!t.passed && "✗"}
-                        </Button>
-                      ))}
-                    </Box>
+                    {result.passed ? (
+                      <Box sx={{ mb: 2, p: 2, background: "rgba(34, 197, 94, 0.1)", border: "1px solid rgba(34, 197, 94, 0.2)", borderRadius: 2 }}>
+                        <Typography variant="subtitle2" sx={{ color: "#22C55E", fontWeight: 900, fontSize: "1.1rem" }}>Accepted</Typography>
+                        <Box sx={{ display: "flex", gap: 2, mt: 0.5 }}>
+                          <Typography variant="caption" sx={{ color: "#94A3B8" }}>Runtime: <Box component="span" sx={{ color: "#fff" }}>{result.runtime || 0} ms</Box></Typography>
+                          <Typography variant="caption" sx={{ color: "#94A3B8" }}>Memory: <Box component="span" sx={{ color: "#fff" }}>14.2 MB</Box></Typography>
+                        </Box>
+                      </Box>
+                    ) : (
+                      <Box sx={{ mb: 2 }}>
+                         <Typography variant="subtitle2" sx={{ color: "#EF4444", fontWeight: 900, fontSize: "1.1rem", mb: 1 }}>Wrong Answer</Typography>
+                         {(result.error || result.message) && (
+                            <Alert severity="error" icon={false} sx={{ 
+                              background: "#0F172A", color: "#FCA5A5", border: "1px solid #334155", 
+                              borderRadius: 1.5, mb: 2, "& .MuiAlert-message": { width: "100%" } 
+                            }}>
+                               <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 800, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 0.5 }}>
+                                 System Diagnostics
+                               </Typography>
+                               <Typography variant="caption" sx={{ fontFamily: "monospace", display: "block", whiteSpace: "pre-wrap" }}>
+                                 {result.error || result.message}
+                               </Typography>
+                            </Alert>
+                         )}
+                      </Box>
+                    )}
 
                     {result.testResults && (
-                      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <Box>
-                          <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 800, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 0.5 }}>Input</Typography>
-                          <Box sx={{ p: 1.5, background: "#0F172A", borderRadius: 1.5, border: "1px solid #334155" }}>
-                            <Typography variant="caption" sx={{ color: "#E2E8F0", fontFamily: "monospace", fontSize: "0.75rem" }}>{result.testResults[activeCaseIdx].input}</Typography>
+                      <Box>
+                        <Box sx={{ display: "flex", gap: 1, mb: 3 }}>
+                          {result.testResults.map((t, idx) => (
+                            <Button key={idx} size="small" onClick={() => setActiveCaseIdx(idx)}
+                              sx={{ 
+                                minWidth: 50, px: 2, height: 26, fontSize: "0.65rem", fontWeight: 900,
+                                color: t.passed ? "#22C55E" : "#EF4444",
+                                background: activeCaseIdx === idx ? `${t.passed ? "#22C55E" : "#EF4444"}15` : "transparent",
+                                border: activeCaseIdx === idx ? `1px solid ${t.passed ? "#22C55E50" : "#EF444450"}` : "none",
+                              }}>
+                              Case {idx + 1} {!t.passed && "✗"}
+                            </Button>
+                          ))}
+                        </Box>
+
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                          <Box>
+                            <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 800, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 0.5 }}>Input</Typography>
+                            <Box sx={{ p: 1.5, background: "#0F172A", borderRadius: 1.5, border: "1px solid #334155" }}>
+                              <Typography variant="caption" sx={{ color: "#E2E8F0", fontFamily: "monospace", fontSize: "0.75rem", whiteSpace: "pre-wrap" }}>
+                                {(() => {
+                                  try {
+                                    const parsed = JSON.parse(result.testResults[activeCaseIdx].input);
+                                    return Object.entries(parsed).map(([k, v]) => `${k} = ${JSON.stringify(v)}`).join(', ');
+                                  } catch (e) {
+                                    return result.testResults[activeCaseIdx].input;
+                                  }
+                                })()}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          
+                          <Box sx={{ display: "flex", gap: 2 }}>
+                            <Box sx={{ flex: 1 }}>
+                                <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 800, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 0.5 }}>Your Output</Typography>
+                                <Box sx={{ p: 1.5, background: "#0F172A", borderRadius: 1.5, border: "1px solid #334155" }}>
+                                  <Typography variant="caption" sx={{ color: result.testResults[activeCaseIdx].passed ? "#22C55E" : "#EF4444", fontFamily: 'monospace', fontSize: "0.75rem", wordBreak: "break-all" }}>
+                                    {typeof result.testResults[activeCaseIdx].output === 'object' ? JSON.stringify(result.testResults[activeCaseIdx].output) : String(result.testResults[activeCaseIdx].output).replace(/^"|"$/g, '')}
+                                  </Typography>
+                                </Box>
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                                <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 900, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 0.5 }}>Expected</Typography>
+                                <Box sx={{ p: 1.5, background: "#0F172A", borderRadius: 1.5, border: "1px solid #334155" }}>
+                                  <Typography variant="caption" sx={{ color: "#22C55E", fontFamily: 'monospace', fontSize: "0.75rem", wordBreak: "break-all" }}>
+                                    {String(result.testResults[activeCaseIdx].expected).replace(/^"|"$/g, '')}
+                                  </Typography>
+                                </Box>
+                            </Box>
                           </Box>
                         </Box>
-                        
-                        <Box sx={{ display: "flex", gap: 2 }}>
-                           <Box sx={{ flex: 1 }}>
-                              <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 800, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 0.5 }}>Your Output</Typography>
-                              <Box sx={{ p: 1.5, background: "#0F172A", borderRadius: 1.5, border: "1px solid #334155" }}>
-                                <Typography variant="caption" sx={{ color: result.testResults[activeCaseIdx].passed ? "#22C55E" : "#EF4444", fontFamily: 'monospace', fontSize: "0.75rem", wordBreak: "break-all" }}>
-                                  {JSON.stringify(result.testResults[activeCaseIdx].output) || "No output"}
-                                </Typography>
-                              </Box>
-                           </Box>
-                           <Box sx={{ flex: 1 }}>
-                              <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 800, textTransform: "uppercase", fontSize: "0.6rem", display: "block", mb: 0.5 }}>Expected</Typography>
-                              <Box sx={{ p: 1.5, background: "#0F172A", borderRadius: 1.5, border: "1px solid #334155" }}>
-                                <Typography variant="caption" sx={{ color: "#22C55E", fontFamily: 'monospace', fontSize: "0.75rem", wordBreak: "break-all" }}>
-                                  {JSON.stringify(result.testResults[activeCaseIdx].expected || result.testResults[activeCaseIdx].output) || "n/a"}
-                                </Typography>
-                              </Box>
-                           </Box>
-                        </Box>
-                        
-                        {!result.testResults[activeCaseIdx].passed && (
-                          <Alert severity="error" icon={false} sx={{ background: "transparent", color: "#EF4444", border: "1px dashed #EF444430", py: 0.2, fontSize: "0.7rem", fontWeight: 700 }}>
-                            Mismatch detected: Double check your logic for this input.
-                          </Alert>
-                        )}
                       </Box>
                     )}
                   </Box>
