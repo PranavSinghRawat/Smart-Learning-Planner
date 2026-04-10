@@ -110,7 +110,7 @@ export default function SmartPlan({ token, userId, dayContext, onClearDay }) {
 
   return (
     <Box className="animate-slide-up">
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 6, gap: 2 }}>
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 3, gap: 2 }}>
         <PageHeader
           icon={<PsychologyIcon />}
           title="Cognitive Strategy"

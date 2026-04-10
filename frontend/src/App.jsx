@@ -605,7 +605,7 @@ function App() {
             </Toolbar>
           </AppBar>
 
-          <Container maxWidth="xl" sx={{ mt: { xs: 2, md: 4 }, mb: 4, flexGrow: 1 }}>
+          <Container maxWidth={false} sx={{ mt: { xs: 2, md: 4 }, mb: 4, flexGrow: 1, px: { xs: 1, sm: 2 } }}>
             <Fade in timeout={500}>
               <Box>
                 {/* ── ROUTING ────────────────────────────────────────────────── */}
@@ -635,6 +635,18 @@ function App() {
                     generatePlan={generatePlan}
                     handleDeleteHistory={handleDeleteHistory}
                     toggleSubtopic={toggleSubtopic}
+                    markTopicDone={(dIdx, tIdx, val) => {
+                      const updated = plan.map((d, di) =>
+                        di !== dIdx ? d : {
+                          ...d, topics: d.topics.map((t, ti) =>
+                            ti !== tIdx ? t : { ...t, completed: val }
+                          )
+                        }
+                      );
+                      setPlan(updated);
+                      saveDailyScore(updated);
+                      showSnackbar(val ? "Module completed" : "Module uncompleted");
+                    }}
                     exportStudyPlanPDF={exportStudyPlanPDF}
                     allSubjects={BASE_SUBJECTS}
                     currentSubjectData={currentSubjectData}

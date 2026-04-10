@@ -5,7 +5,7 @@ import {
   Chip, Box as MuiBox, LinearProgress, Paper, Divider,
   InputAdornment, Accordion, AccordionSummary, AccordionDetails,
   List, ListItem, ListItemText, Dialog, DialogTitle,
-  DialogContent, DialogActions, Tooltip, useTheme
+  DialogContent, DialogActions, Tooltip, useTheme, Checkbox
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
@@ -20,6 +20,9 @@ import PauseIcon from "@mui/icons-material/Pause";
 import StopIcon from "@mui/icons-material/Stop";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import LockIcon from "@mui/icons-material/Lock";
+import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+import ResourcePanel from "../components/ResourcePanel";
 import {
   PieChart, Pie, Cell, Tooltip as RechartsTooltip, BarChart, Bar,
   XAxis, YAxis, ResponsiveContainer,
@@ -44,7 +47,7 @@ export default function Planner({
   timerSeconds, setTimerSeconds,
   showHistory, setShowHistory,
   generatePlan, handleDeleteHistory,
-  toggleSubtopic, exportStudyPlanPDF,
+  exportStudyPlanPDF,
   allSubjects, currentSubjectData,
   barData, pieData, totalProgress,
   setSmartPlanContext, setActiveTab,
@@ -53,14 +56,14 @@ export default function Planner({
   customLevelTab, setCustomLevelTab, customTopics, setCustomTopics,
   resumeDialogOpen, setResumeDialogOpen, duplicatePlan,
   formatTimer, statusInfo, dayProgress,
-  isTopicLocked, completedFlash
+  isTopicLocked, completedFlash, markTopicDone, toggleSubtopic
 }) {
   const theme = useTheme();
 
   return (
     <Box className="tab-content">
       {/* ── BENTO HEADER ────────────────────────────────────────────── */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
+      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 800, color: '#1e293b', letterSpacing: -1 }}>
             Morning, {currentUsername || "Student"}!
@@ -307,39 +310,69 @@ export default function Planner({
                 </AccordionSummary>
                 <AccordionDetails sx={{ px: 4, pb: 4 }}>
                   <Grid container spacing={2}>
-                    {day.topics.map((topic, tIdx) => (
-                      <Grid item xs={12} md={6} key={tIdx}>
-                        <Box
-                          component={motion.div}
-                          whileHover={{ scale: 1.01 }}
-                          sx={{
-                            p: 2.5, borderRadius: 4,
-                            background: topic.completed ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255,255,255,0.4)',
-                            border: `1px solid ${topic.completed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0,0,0,0.05)'}`,
-                            display: 'flex', alignItems: 'center', gap: 2,
-                            position: 'relative', overflow: 'hidden'
-                          }}
-                        >
-                          <MuiBox sx={{ flex: 1 }}>
-                            <Typography variant="body1" sx={{ fontWeight: 700, color: topic.completed ? '#065F46' : '#1e293b' }}>
-                              {topic.name}
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
-                              <Chip label={`${topic.hours}h`} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} />
-                              {topic.verified && <Chip label="Verified" size="small" color="success" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} />}
-                            </Box>
-                          </MuiBox>
-                          <Button
-                            variant={topic.completed ? "contained" : "outlined"}
-                            color="success"
-                            onClick={() => toggleSubtopic(dIdx, tIdx)}
-                            sx={{ borderRadius: 3, fontWeight: 700, minWidth: 100 }}
+                    {day.topics.map((topic, tIdx) => {
+                      const locked = isTopicLocked(dIdx, tIdx);
+                      return (
+                        <Grid item xs={12} md={6} key={tIdx}>
+                          <Box
+                            component={motion.div}
+                            whileHover={locked ? {} : { scale: 1.01 }}
+                            sx={{
+                              p: 2.5, borderRadius: 4,
+                              background: locked ? 'rgba(0,0,0,0.02)' : (topic.completed ? 'rgba(16, 185, 129, 0.05)' : 'rgba(255,255,255,0.4)'),
+                              border: `1px solid ${locked ? 'rgba(0,0,0,0.05)' : (topic.completed ? 'rgba(16, 185, 129, 0.1)' : 'rgba(0,0,0,0.05)')}`,
+                              display: 'flex', flexDirection: 'column', gap: 1.5,
+                              position: 'relative', overflow: 'hidden',
+                              opacity: locked ? 0.6 : 1,
+                              filter: locked ? 'grayscale(0.5)' : 'none',
+                              pointerEvents: locked ? 'none' : 'auto'
+                            }}
                           >
-                            {topic.completed ? "Mastered" : "Learn"}
-                          </Button>
-                        </Box>
-                      </Grid>
-                    ))}
+                            {locked && (
+                              <Box sx={{ position: 'absolute', top: 12, right: 12, color: 'text.disabled' }}>
+                                <LockIcon fontSize="small" />
+                              </Box>
+                            )}
+                            
+                            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                              <Checkbox 
+                                checked={!!topic.completed}
+                                onChange={(e) => markTopicDone(dIdx, tIdx, e.target.checked)}
+                                icon={<RadioButtonUncheckedIcon />}
+                                checkedIcon={<CheckCircleIcon color="success" />}
+                                sx={{ p: 0, mt: 0.5 }}
+                                disabled={locked}
+                              />
+                              <MuiBox sx={{ flex: 1 }}>
+                                <Typography variant="body1" sx={{ fontWeight: 700, color: topic.completed ? '#065F46' : '#1e293b' }}>
+                                  {topic.name}
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                                  <Chip label={`${topic.hours}h`} size="small" variant="outlined" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} />
+                                  {topic.verified && <Chip label="Verified" size="small" color="success" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700 }} />}
+                                </Box>
+                              </MuiBox>
+                              {!topic.completed && (
+                                <Button
+                                  variant="outlined"
+                                  color="primary"
+                                  size="small"
+                                  onClick={() => toggleSubtopic(dIdx, tIdx)}
+                                  sx={{ borderRadius: 3, fontWeight: 700, minWidth: 80 }}
+                                  disabled={locked}
+                                >
+                                  Practice
+                                </Button>
+                              )}
+                            </Box>
+
+                            <Divider sx={{ opacity: 0.1 }} />
+                            
+                            <ResourcePanel topicName={topic.name} />
+                          </Box>
+                        </Grid>
+                      );
+                    })}
                   </Grid>
                 </AccordionDetails>
               </Accordion>

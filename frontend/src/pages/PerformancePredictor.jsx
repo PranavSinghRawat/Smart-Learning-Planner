@@ -78,7 +78,7 @@ export default function PerformancePredictor({ userId, token }) {
 
   return (
     <Box className="animate-slide-up">
-      <Box sx={{ mb: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <PageHeader 
           icon={<AutoGraphIcon />}
           title="Predictive Analytics"
@@ -266,19 +266,18 @@ export default function PerformancePredictor({ userId, token }) {
 
 function PageHeader({ icon, title, subtitle }) {
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
       <Box sx={{
-        width: 60, height: 60, borderRadius: 4,
+        width: 50, height: 50, borderRadius: 3,
         background: "rgba(15, 118, 110, 0.1)",
         color: "primary.main",
         display: "flex", alignItems: "center", justifyContent: "center",
-        fontSize: "2rem", flexShrink: 0,
-        boxShadow: "0 8px 16px rgba(15, 118, 110, 0.1)"
+        fontSize: "1.5rem", flexShrink: 0,
+        boxShadow: "0 4px 8px rgba(15, 118, 110, 0.1)"
       }}>
         {icon}
       </Box>
       <Box>
-        <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -1, color: "#0f172a" }}>{title}</Typography>
         <Typography variant="subtitle1" sx={{ color: "#64748b", fontWeight: 500, mt: 0.5 }}>{subtitle}</Typography>
       </Box>
     </Box>

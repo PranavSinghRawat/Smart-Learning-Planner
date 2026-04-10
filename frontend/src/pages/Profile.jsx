@@ -114,7 +114,7 @@ export default function Profile({ userId, username, studyHistory = [], plan = []
   return (
     <Box>
       {/* ── Header ── */}
-      <Box sx={{ mb: 5, display: 'flex', alignItems: 'center', gap: 3 }}>
+      <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
         <Avatar sx={{ width: 72, height: 72, background: 'linear-gradient(135deg, #0f766e 0%, #06b6d4 100%)', fontSize: '1.8rem', fontWeight: 900, boxShadow: '0 8px 24px rgba(15,118,110,0.2)' }}>
           {username?.[0]?.toUpperCase() || "U"}
         </Avatar>
